@@ -2,14 +2,38 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Coins } from "lucide-react"
+import { Coins, Menu, X } from "lucide-react"
+import { useState, useEffect } from "react"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 export default function Header() {
   const pathname = usePathname()
+  const isMobile = useIsMobile()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  
+  // Close menu when route changes
+  useEffect(() => {
+    setIsMenuOpen(false)
+  }, [pathname])
+
+  // Close menu when switching from mobile to desktop
+  useEffect(() => {
+    if (!isMobile) {
+      setIsMenuOpen(false)
+    }
+  }, [isMobile])
 
   const isActive = (path: string) => {
     return pathname === path
   }
+
+  const navLinks = [
+    { href: "/", label: "Arena" },
+    { href: "/history", label: "History" },
+    { href: "/portfolio", label: "Portfolio" },
+    { href: "/about", label: "About" },
+    { href: "/settings", label: "Settings" },
+  ]
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b">
@@ -20,48 +44,49 @@ export default function Header() {
             <span className="font-bold text-xl">Tokenomics Arena</span>
           </Link>
 
-          <nav className="flex items-center gap-6">
-            <Link
-              href="/"
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                isActive("/") ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              Arena
-            </Link>
-            <Link
-              href="/history"
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                isActive("/history") ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              History
-            </Link>
-            <Link
-              href="/portfolio"
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                isActive("/portfolio") ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              Portfolio
-            </Link>
-            <Link
-              href="/about"
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                isActive("/about") ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              About
-            </Link>
-            <Link
-              href="/settings"
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                isActive("/settings") ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              Settings
-            </Link>
-          </nav>
+          {isMobile ? (
+            <>
+              <button 
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+              >
+                {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
+              
+              {isMenuOpen && (
+                <div className="absolute top-16 left-0 right-0 bg-background border-b shadow-lg animate-in slide-in-from-top-5">
+                  <nav className="flex flex-col py-4 px-4">
+                    {navLinks.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className={`py-3 px-4 text-base font-medium transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md ${
+                          isActive(link.href) ? "text-primary bg-gray-50 dark:bg-gray-900" : "text-muted-foreground"
+                        }`}
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                  </nav>
+                </div>
+              )}
+            </>
+          ) : (
+            <nav className="flex items-center gap-6">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`text-sm font-medium transition-colors hover:text-primary ${
+                    isActive(link.href) ? "text-primary" : "text-muted-foreground"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          )}
         </div>
       </div>
     </header>

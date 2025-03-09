@@ -243,16 +243,16 @@ export default function PortfolioPage() {
 
   return (
     <main className="container max-w-4xl mx-auto py-8 px-4">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-3xl font-bold">Suggested Portfolio Allocation</h1>
         <Button
           variant="outline"
           size="sm"
           onClick={() => setShowSettings(!showSettings)}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 w-full sm:w-auto justify-center"
         >
           <Settings className="h-4 w-4" />
-          Algorithm Settings
+          <span>Algorithm Settings</span>
         </Button>
       </div>
 
@@ -267,7 +267,7 @@ export default function PortfolioPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <div className="flex justify-between">
+                <div className="flex flex-col sm:flex-row justify-between gap-1">
                   <label className="text-sm font-medium">Learning Rate (Alpha): {learningRate.toFixed(2)}</label>
                   <span className="text-xs text-muted-foreground">Controls how quickly allocations adjust</span>
                 </div>
@@ -277,11 +277,12 @@ export default function PortfolioPage() {
                   max={1}
                   step={0.05}
                   onValueChange={(value) => setLearningRate(value[0])}
+                  thumbClassName="h-6 w-6" // Larger thumb for mobile
                 />
               </div>
 
               <div className="space-y-2">
-                <div className="flex justify-between">
+                <div className="flex flex-col sm:flex-row justify-between gap-1">
                   <label className="text-sm font-medium">Time Decay Factor: {timeDecay.toFixed(2)}</label>
                   <span className="text-xs text-muted-foreground">
                     How much newer entries matter compared to older ones
@@ -293,11 +294,12 @@ export default function PortfolioPage() {
                   max={1}
                   step={0.05}
                   onValueChange={(value) => setTimeDecay(value[0])}
+                  thumbClassName="h-6 w-6" // Larger thumb for mobile
                 />
               </div>
 
               <div className="space-y-2">
-                <div className="flex justify-between">
+                <div className="flex flex-col sm:flex-row justify-between gap-1">
                   <label className="text-sm font-medium">Convergence Threshold: {convergenceThreshold}</label>
                   <span className="text-xs text-muted-foreground">
                     When change is below this value, simulation stops
@@ -309,11 +311,12 @@ export default function PortfolioPage() {
                   max={0.01}
                   step={0.0001}
                   onValueChange={(value) => setConvergenceThreshold(value[0])}
+                  thumbClassName="h-6 w-6" // Larger thumb for mobile
                 />
               </div>
 
               <div className="space-y-2">
-                <div className="flex justify-between">
+                <div className="flex flex-col sm:flex-row justify-between gap-1">
                   <label className="text-sm font-medium">Maximum Iterations: {maxIterations}</label>
                   <span className="text-xs text-muted-foreground">Safety limit to prevent infinite loops</span>
                 </div>
@@ -323,6 +326,7 @@ export default function PortfolioPage() {
                   max={500}
                   step={10}
                   onValueChange={(value) => setMaxIterations(value[0])}
+                  thumbClassName="h-6 w-6" // Larger thumb for mobile
                 />
               </div>
 

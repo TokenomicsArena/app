@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useRef, useEffect } from "react"
+import { useIsMobile } from "@/hooks/use-mobile"
 import Image from "next/image"
 import { Edit2, Trash2, Save, Upload } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -33,6 +34,7 @@ export default function HistoryPage() {
   const [restoreData, setRestoreData] = useState<{ history: HistoryItem[] } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const isMobile = useIsMobile()
   
   // Set loading to false after initial render
   useEffect(() => {
@@ -251,19 +253,19 @@ export default function HistoryPage() {
   return (
     <TooltipProvider>
       <main className="container max-w-6xl mx-auto py-8 px-4">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <h1 className="text-3xl font-bold">Selection History</h1>
           
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={handleSave}
               disabled={isProcessing || history.length === 0}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 flex-1 sm:flex-initial justify-center"
             >
               <Save className="h-4 w-4" />
-              Save
+              <span>Save</span>
             </Button>
             
             <Button
@@ -271,10 +273,10 @@ export default function HistoryPage() {
               size="sm"
               onClick={handleRestoreClick}
               disabled={isProcessing}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 flex-1 sm:flex-initial justify-center"
             >
               <Upload className="h-4 w-4" />
-              Restore
+              <span>Restore</span>
             </Button>
             
             <input
@@ -302,7 +304,7 @@ export default function HistoryPage() {
           <div className="rounded-md border overflow-hidden">
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="hidden sm:table-header-group">
                   <TableRow>
                     <TableHead className="w-[120px]">Date</TableHead>
                     <TableHead>Allocation</TableHead>
@@ -313,12 +315,12 @@ export default function HistoryPage() {
                   {history.map((item) => (
                     <React.Fragment key={item.id}>
                       <TableRow id={item.id} className="transition-colors duration-500">
-                        <TableCell className="font-medium whitespace-nowrap">
+                        <TableCell className={`font-medium whitespace-nowrap ${isMobile ? "hidden" : ""}`}>
                           {formatDate(new Date(item.timestamp))}
                         </TableCell>
 
-                        <TableCell>
-                          <div className="relative rounded-lg overflow-hidden bg-muted h-14">
+                        <TableCell className={isMobile ? "py-3 px-3" : ""} colSpan={isMobile ? 2 : 1}>
+                          <div className={`relative rounded-lg overflow-hidden bg-muted ${isMobile ? "h-16" : "h-14"}`}>
                             {/* Background allocation visualization for first crypto */}
                             <div
                               className="absolute top-0 left-0 h-full"
@@ -338,41 +340,84 @@ export default function HistoryPage() {
                             ></div>
 
                             {/* Content */}
-                            <div className="flex justify-between items-center px-4 h-full relative z-10">
-                              {/* First token (always the one with higher allocation) */}
-                              <div className="flex items-center gap-2">
-                                <Image
-                                  src={item.crypto1.logo || "/placeholder.svg"}
-                                  alt={item.crypto1.name}
-                                  width={28}
-                                  height={28}
-                                  className="rounded-full"
-                                />
-                                <div>
-                                  <div className="font-medium">{item.crypto1.name}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {item.crypto1.symbol} · {item.crypto1AllocationPercent.toFixed(2)}%
+                            {isMobile ? (
+                              /* Mobile layout - horizontal with both tokens */
+                              <div className="flex justify-between items-center px-3 h-full relative z-10">
+                                {/* First token */}
+                                <div className="flex items-center gap-2">
+                                  <Image
+                                    src={item.crypto1.logo || "/placeholder.svg"}
+                                    alt={item.crypto1.name}
+                                    width={24}
+                                    height={24}
+                                    className="rounded-full"
+                                  />
+                                  <div>
+                                    <div className="font-medium">{item.crypto1.name}</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {item.crypto1.symbol} · {item.crypto1AllocationPercent.toFixed(2)}%
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
 
-                              {/* Second token */}
-                              <div className="flex items-center gap-2">
-                                <div className="text-right">
-                                  <div className="font-medium">{item.crypto2.name}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {(100 - item.crypto1AllocationPercent).toFixed(2)}% · {item.crypto2.symbol}
+                                {/* Separator */}
+                                <div className="text-muted-foreground mx-2">vs</div>
+
+                                {/* Second token */}
+                                <div className="flex items-center gap-2">
+                                  <div>
+                                    <div className="font-medium text-right">{item.crypto2.name}</div>
+                                    <div className="text-sm text-muted-foreground text-right">
+                                      {item.crypto2.symbol} · {(100 - item.crypto1AllocationPercent).toFixed(2)}%
+                                    </div>
+                                  </div>
+                                  <Image
+                                    src={item.crypto2.logo || "/placeholder.svg"}
+                                    alt={item.crypto2.name}
+                                    width={24}
+                                    height={24}
+                                    className="rounded-full"
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              /* Desktop layout - unchanged */
+                              <div className="flex flex-row justify-between items-center px-4 py-0 h-full relative z-10">
+                                {/* First token (always the one with higher allocation) */}
+                                <div className="flex items-center gap-2">
+                                  <Image
+                                    src={item.crypto1.logo || "/placeholder.svg"}
+                                    alt={item.crypto1.name}
+                                    width={28}
+                                    height={28}
+                                    className="rounded-full"
+                                  />
+                                  <div>
+                                    <div className="font-medium">{item.crypto1.name}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {item.crypto1.symbol} · {item.crypto1AllocationPercent.toFixed(2)}%
+                                    </div>
                                   </div>
                                 </div>
-                                <Image
-                                  src={item.crypto2.logo || "/placeholder.svg"}
-                                  alt={item.crypto2.name}
-                                  width={28}
-                                  height={28}
-                                  className="rounded-full"
-                                />
+
+                                {/* Second token */}
+                                <div className="flex items-center gap-2">
+                                  <div className="text-right">
+                                    <div className="font-medium">{item.crypto2.name}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {(100 - item.crypto1AllocationPercent).toFixed(2)}% · {item.crypto2.symbol}
+                                    </div>
+                                  </div>
+                                  <Image
+                                    src={item.crypto2.logo || "/placeholder.svg"}
+                                    alt={item.crypto2.name}
+                                    width={28}
+                                    height={28}
+                                    className="rounded-full"
+                                  />
+                                </div>
                               </div>
-                            </div>
+                            )}
                           </div>
                         </TableCell>
 

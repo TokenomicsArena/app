@@ -83,17 +83,17 @@ export default function TokenSelection({
       </div>
 
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex flex-col sm:flex-row items-center justify-between mb-4 sm:mb-2 gap-2 sm:gap-0">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-medium">100% {cryptoPair[0].name}</p>
             <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+            <p className="text-sm font-medium">100% {cryptoPair[0].name}</p>
           </div>
 
           <p className="text-sm font-medium">50%</p>
 
           <div className="flex items-center gap-2">
-            <p className="text-sm font-medium">100% {cryptoPair[1].name}</p>
             <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+            <p className="text-sm font-medium">100% {cryptoPair[1].name}</p>
           </div>
         </div>
 
@@ -104,8 +104,8 @@ export default function TokenSelection({
           min={0}
           step={0.01}
           className="mb-6"
-          thumbClassName="h-6 w-6 border-2"
-          trackClassName="h-3"
+          thumbClassName="h-8 w-8 border-2" // Increased thumb size for better touch targets
+          trackClassName="h-4" // Slightly taller track for easier interaction
         />
       </div>
 

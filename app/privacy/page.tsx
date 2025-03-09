@@ -30,12 +30,12 @@ At Tokenomics Arena, we prioritize your privacy and transparency. We've engineer
             To protect your privacy, we avoid third-party resources—no external fonts or trackers, since 
             <a 
               target="_blank" 
-              className="inline" 
+              className="inline-flex items-center hover:underline" 
               title="https://www.firstpost.com/world/how-google-uses-fonts-to-track-what-users-do-online-and-sell-data-to-advertisers-12496552.html" 
               href="https://www.firstpost.com/world/how-google-uses-fonts-to-track-what-users-do-online-and-sell-data-to-advertisers-12496552.html"
             >
               <ExternalLink className="h-4 w-4 mx-1 inline" />
-              it's a known source of privacy invasions used for tracking and profiling you
+              <span>it's a known source of privacy invasions used for tracking and profiling you</span>
             </a>.
           </li>
           <li>
@@ -66,11 +66,12 @@ At Tokenomics Arena, we prioritize your privacy and transparency. We've engineer
           Due to how HTTP and TCP/IP work, 
           <a 
             target="_blank" 
+            className="inline-flex items-center hover:underline"
             title="https://web.archive.org/web/20231209142434/https://therecord.media/browser-users-can-be-tracked-even-when-javascript-is-disabled" 
             href="https://web.archive.org/web/20231209142434/https://therecord.media/browser-users-can-be-tracked-even-when-javascript-is-disabled"
           >
             <ExternalLink className="h-4 w-4 mx-1 inline" />
-            the server running this website (and all other websites you visit)
+            <span>the server running this website (and all other websites you visit)</span>
           </a> 
           &nbsp;receives your IP address, browser, operating system, and other identifiable details with each visit. You can mask this information (e.g., with a VPN), and we encourage you to do so for maximum privacy.
         </p>
