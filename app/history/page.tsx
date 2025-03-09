@@ -1,12 +1,14 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef } from "react"
 import Image from "next/image"
-import { Edit2, Trash2 } from "lucide-react"
+import { Edit2, Trash2, Save, Upload } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
+import { calculatePortfolio } from "@/lib/portfolio-utils"
+import { embedMetadataInImage, extractMetadataFromImage, downloadDataUrl } from "@/lib/image-metadata"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,13 +21,17 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useStore } from "@/lib/store"
+import { useStore, HistoryItem } from "@/lib/store"
 
 export default function HistoryPage() {
-  const { history, removeFromHistory } = useStore()
+  const { history, removeFromHistory, exportHistory, importHistory } = useStore()
   const router = useRouter()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<string | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
+  const [restoreData, setRestoreData] = useState<{ history: HistoryItem[] } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleEdit = (id: string) => {
     // Navigate to the arena page with the item ID as a query parameter
@@ -89,10 +95,167 @@ export default function HistoryPage() {
   }
 
 
+  const handleSave = async () => {
+    if (history.length === 0) {
+      toast({
+        title: "No data to save",
+        description: "You haven't made any selections yet.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    
+    try {
+      // Calculate portfolio data for visualization
+      const portfolioData = calculatePortfolio(history);
+      
+      // Export history data
+      const historyData = exportHistory();
+      
+      // Generate image with embedded metadata
+      const resultJson = await embedMetadataInImage(portfolioData, historyData);
+      
+      // Download the image
+      downloadDataUrl(resultJson, `tokenomics-arena-backup-${new Date().toISOString().split('T')[0]}.png`);
+      
+      toast({
+        title: "Backup saved",
+        description: "Your selection history has been saved as an image file.",
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to save backup",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRestoreClick = () => {
+    // Explicitly trigger the file input click
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    } else {
+      console.error("File input reference is not available");
+      toast({
+        title: "Error",
+        description: "Could not open file picker. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      console.log("No file selected");
+      return;
+    }
+    
+    console.log("File selected:", file.name);
+    setIsProcessing(true);
+    
+    try {
+      // Extract metadata from the image
+      console.log("Extracting metadata...");
+      const data = await extractMetadataFromImage(file);
+      console.log("Metadata extracted:", data);
+      
+      // Validate the data
+      if (!data || !Array.isArray(data.history)) {
+        throw new Error("The metadata in the image was not a valid backup for Tokenomics Arena data");
+      }
+      
+      // Store the data for confirmation
+      setRestoreData(data);
+      
+      // Open the confirmation dialog
+      setRestoreDialogOpen(true);
+    } catch (error) {
+      console.error("Restore error:", error);
+      toast({
+        title: "Failed to restore backup",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+      
+      // Reset the file input
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
+  };
+
+  const confirmRestore = () => {
+    if (!restoreData) return;
+    
+    try {
+      // Import the history data
+      importHistory(restoreData);
+      
+      toast({
+        title: "Backup restored",
+        description: `Successfully restored ${restoreData.history.length} selection(s).`,
+      });
+      
+      // Close the dialog
+      setRestoreDialogOpen(false);
+      setRestoreData(null);
+    } catch (error) {
+      toast({
+        title: "Failed to restore backup",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <TooltipProvider>
       <main className="container max-w-6xl mx-auto py-8 px-4">
-        <h1 className="text-3xl font-bold mb-6">Selection History</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Selection History</h1>
+          
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSave}
+              disabled={isProcessing || history.length === 0}
+              className="flex items-center gap-2"
+            >
+              <Save className="h-4 w-4" />
+              Save
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRestoreClick}
+              disabled={isProcessing}
+              className="flex items-center gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Restore
+            </Button>
+            
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              onClick={(e) => console.log("File input clicked")}
+              accept="image/png"
+              className="hidden"
+              id="file-upload"
+            />
+          </div>
+        </div>
 
         {history.length === 0 ? (
           <div className="text-center py-12 border rounded-lg">
@@ -248,6 +411,51 @@ export default function HistoryPage() {
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground">
                 Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        
+        {/* Restore Confirmation Dialog */}
+        <AlertDialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Restore backup?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {restoreData && (
+                  history.length > 0 
+                    ? `This will replace your current history (${history.length} selection${history.length !== 1 ? 's' : ''}) with the backup data (${restoreData.history.length} selection${restoreData.history.length !== 1 ? 's' : ''}).`
+                    : `This will import ${restoreData.history.length} selection${restoreData.history.length !== 1 ? 's' : ''} from the backup.`
+                )}
+              </AlertDialogDescription>
+              
+              {/* Additional information outside of AlertDialogDescription */}
+              {restoreData && (
+                <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+                  {history.length > 0 && (
+                    <div className="flex flex-col">
+                      <span className="font-medium text-foreground">Your most recent entry:</span>
+                      <span>{formatDate(new Date(Math.max(...history.map(item => new Date(item.timestamp).getTime()))))}</span>
+                    </div>
+                  )}
+                  
+                  {restoreData.history.length > 0 && (
+                    <div className="flex flex-col">
+                      <span className="font-medium text-foreground">Backup's most recent entry:</span>
+                      <span>{formatDate(new Date(Math.max(...restoreData.history.map(item => new Date(item.timestamp).getTime()))))}</span>
+                    </div>
+                  )}
+                  
+                  <div className="mt-4 font-medium text-foreground">
+                    This action cannot be undone.
+                  </div>
+                </div>
+              )}
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setRestoreData(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmRestore} className="bg-primary text-primary-foreground">
+                Restore
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

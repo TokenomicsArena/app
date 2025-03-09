@@ -7,11 +7,12 @@ Tokenomics Arena is a web application that helps users discover their ideal cryp
 ## Core Features
 
 ### 1. Arena (Main Interface)
-- Presents two random cryptocurrencies for comparison
+- Presents two cryptocurrencies for comparison using a smart selection algorithm
 - Large, interactive slider for allocation decisions
-- Visual feedback showing percentage splits
+- Visual feedback showing percentage splits with color coding
 - Optional explanation field for recording decision rationale
 - Clear submission flow with confirmation
+- Edit mode for updating previous selections
 
 ### 2. History
 - Chronological record of all allocation decisions
@@ -24,10 +25,14 @@ Tokenomics Arena is a web application that helps users discover their ideal cryp
 
 ### 3. Portfolio
 - Aggregated view of allocation preferences
-- Portfolio value calculator
-- Diversification metrics
-- Asset allocation visualization
+- Portfolio value calculator (based on $10,000 investment)
+- Asset allocation visualization with progress bars
 - Ranked token list based on preferences
+- Customizable algorithm parameters:
+  - Learning rate
+  - Time decay factor
+  - Convergence threshold
+  - Maximum iterations
 
 ### 4. About
 - Mission statement
@@ -42,6 +47,12 @@ Tokenomics Arena is a web application that helps users discover their ideal cryp
 - Clear visual indication of current section
 - Logo serves as home button
 - Responsive design for all screen sizes
+- Dark/light mode support
+
+### Theme Support
+- System preference detection for theme
+- Manual toggle between light and dark modes
+- Consistent styling across all components
 
 ### User Interface
 
@@ -94,10 +105,10 @@ for each token in tokens:
     allocation[token] = (appearances of token in history) / (total token appearances)
 
 // Iterative refinement
-alpha = 0.95  // Learning rate (tune as needed)
-decay_factor = 0.95  // For time decay
-convergence_threshold = 0.0001  // Stop when changes are small
-max_iterations = 100  // Safety limit
+alpha = 0.9  // Learning rate (user adjustable: 0.1-1.0)
+decay_factor = 0.95  // For time decay (user adjustable: 0.5-1.0)
+convergence_threshold = 0.0001  // Stop when changes are small (user adjustable: 0.00001-0.01)
+max_iterations = 100  // Safety limit (user adjustable: 10-500)
 
 iterations = 0
 max_change = 1.0  // Initialize above threshold
@@ -112,26 +123,26 @@ while (max_change > convergence_threshold && iterations < max_iterations):
         entry = history[i]
         time_weight = decay_factor^(history.length - 1 - i)  // Higher weight for recent entries
         
-        token_a = entry.token_a
-        token_b = entry.token_b
-        pref_a = entry.preference_a / 100  // As proportion
-        pref_b = entry.preference_b / 100
+        token_a = entry.crypto1.id
+        token_b = entry.crypto2.id
+        pref_a = entry.crypto1AllocationPercent / 100  // As proportion
+        pref_b = 1 - pref_a
         
         // Current normalized allocations for this pair
         sum_ab = allocation[token_a] + allocation[token_b]
-        curr_a_norm = allocation[token_a] / sum_ab
-        curr_b_norm = allocation[token_b] / sum_ab
-        
-        // Calculate adjustment based on difference from preference
-        delta_a = (pref_a - curr_a_norm) * alpha * time_weight
-        
-        // Update allocations
-        allocation[token_a] += delta_a * sum_ab
-        allocation[token_b] -= delta_a * sum_ab
-        
-        // Ensure non-negative
-        allocation[token_a] = max(0, allocation[token_a])
-        allocation[token_b] = max(0, allocation[token_b])
+        if (sum_ab > 0):  // Prevent division by zero
+            curr_a_norm = allocation[token_a] / sum_ab
+            
+            // Calculate adjustment based on difference from preference
+            delta_a = (pref_a - curr_a_norm) * alpha * time_weight
+            
+            // Update allocations
+            allocation[token_a] += delta_a * sum_ab
+            allocation[token_b] -= delta_a * sum_ab
+            
+            // Ensure non-negative
+            allocation[token_a] = max(0, allocation[token_a])
+            allocation[token_b] = max(0, allocation[token_b])
     
     // Normalize to ensure sum = 1
     total = sum(allocation.values())
@@ -165,3 +176,46 @@ while (max_change > convergence_threshold && iterations < max_iterations):
      crypto1AllocationPercent: number
      explanation: string
    }
+
+## Smart Pair Selection
+
+The application uses a sophisticated algorithm to determine which cryptocurrency pairs to present to the user. A fundamental rule is that **the same pair of cryptocurrencies is never shown twice** - once users have compared a specific pair, they will never see that exact pair again.
+
+### Pair Exhaustion Handling
+
+- When all possible unique pairs have been compared, the application notifies the user that all combinations have been completed
+- The user is then redirected to the History page to review their selections
+- This ensures users always make fresh comparisons and prevents redundant decision-making
+
+### Selection Strategies
+
+When selecting new pairs (that haven't been compared before), the algorithm uses these weighted strategies:
+
+1. **Explore New Tokens** (30% weight)
+   - Prioritizes tokens the user hasn't seen before
+   - Pairs new tokens with frequently compared ones
+
+2. **Refine Preferred Tokens** (40% weight)
+   - Focuses on high-preference tokens
+   - Helps refine allocations for tokens the user already likes
+
+3. **Reconsider Low-Preference Tokens** (15% weight)
+   - Occasionally shows low-preference tokens
+   - Gives users a chance to reconsider previous decisions
+
+4. **Random Selection** (15% weight)
+   - Pure randomness component
+   - Ensures diversity in comparisons
+
+### Algorithm Parameters
+
+- **Minimum Comparisons**: Number of times a token should be compared before reducing its "new" status
+- **Maximum Preference Bias**: Prevents always picking the same top tokens
+- **Low Preference Penalty**: Controls how quickly low-preference tokens reduce in frequency
+- **Time Decay**: More recent comparisons have more influence
+
+### Pair Tracking
+
+- The system maintains a comprehensive record of all previously compared pairs
+- Each comparison is tracked regardless of the order of tokens (A-B is considered the same as B-A)
+- Before presenting a new pair, the system verifies it hasn't been shown before

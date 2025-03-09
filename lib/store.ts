@@ -168,7 +168,7 @@ const selectNewTokenPair = (
   newTokens: typeof cryptocurrencies,
   seenTokens: typeof cryptocurrencies,
   tokenStats: Record<string, any>
-): [(typeof cryptocurrencies)[0], (typeof cryptocurrencies)[0]] => {
+): [(typeof cryptocurrencies)[0], (typeof cryptocurrencies)[0]] | null => {
   // Pick a random new token
   const newToken = newTokens[Math.floor(Math.random() * newTokens.length)];
   
@@ -198,7 +198,7 @@ const selectNewTokenPair = (
 const selectHighPreferencePair = (
   tokens: typeof cryptocurrencies,
   tokenStats: Record<string, any>
-): [(typeof cryptocurrencies)[0], (typeof cryptocurrencies)[0]] => {
+): [(typeof cryptocurrencies)[0], (typeof cryptocurrencies)[0]] | null => {
   // Filter to tokens that have been seen enough times
   const eligibleTokens = tokens.filter(
     token => tokenStats[token.id] && tokenStats[token.id].comparisonCount >= config.MIN_COMPARISONS
@@ -245,7 +245,7 @@ const selectHighPreferencePair = (
 const selectLowPreferencePair = (
   tokens: typeof cryptocurrencies,
   tokenStats: Record<string, any>
-): [(typeof cryptocurrencies)[0], (typeof cryptocurrencies)[0]] => {
+): [(typeof cryptocurrencies)[0], (typeof cryptocurrencies)[0]] | null => {
   // Only consider tokens with sufficient comparisons
   const eligibleTokens = tokens.filter(
     token => tokenStats[token.id] && tokenStats[token.id].comparisonCount >= config.MIN_COMPARISONS
@@ -283,7 +283,9 @@ const selectLowPreferencePair = (
   
   // Fallback to any non-same token
   const otherTokens = tokens.filter(token => token.id !== lowToken.id);
-  return [lowToken, otherTokens[Math.floor(Math.random() * otherTokens.length)]];
+  const secondToken = otherTokens[Math.floor(Math.random() * otherTokens.length)];
+  
+  return [lowToken, secondToken];
 };
 
 /**
@@ -292,7 +294,7 @@ const selectLowPreferencePair = (
 const selectRandomPair = (
   tokens: typeof cryptocurrencies,
   tokenStats: Record<string, any> | null = null
-): [(typeof cryptocurrencies)[0], (typeof cryptocurrencies)[0]] => {
+): [(typeof cryptocurrencies)[0], (typeof cryptocurrencies)[0]] | null => {
   if (tokens.length < 2) {
     throw new Error("Need at least two tokens for comparison");
   }
@@ -323,8 +325,9 @@ const selectRandomPair = (
       return validPairs[Math.floor(Math.random() * validPairs.length)];
     }
     
-    // If no valid pairs, we'll have to reuse a pair (should be rare if we manage this well)
+    // If no valid pairs, return null to indicate all pairs have been exhausted
     console.warn("No unique token pairs available. All tokens have been compared with each other.");
+    return null;
   }
   
   // Fallback or no stats provided - just pick two different tokens
@@ -481,8 +484,8 @@ export const getSmartPair = (): [(typeof cryptocurrencies)[0], (typeof cryptocur
   
   if (!hasValidPairs) {
     console.warn("All possible token pairs have been compared. Consider adding new tokens or resetting history.");
-    // Return the least recently compared pair
-    return selectLeastRecentlyComparedPair(cryptocurrencies, tokenStats);
+    // Return null to indicate all pairs have been exhausted
+    return null;
   }
   
   // STRATEGY 1: Explore new tokens (if any exist)
@@ -511,11 +514,13 @@ type Store = {
   addToHistory: (item: HistoryItem) => void
   updateHistory: (id: string, item: HistoryItem) => void
   removeFromHistory: (id: string) => void
+  exportHistory: () => { history: HistoryItem[] }
+  importHistory: (data: { history: HistoryItem[] }) => void
 }
 
 export const useStore = create<Store>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       history: sampleHistory,
       addToHistory: (item) =>
         set((state) => ({
@@ -529,6 +534,19 @@ export const useStore = create<Store>()(
         set((state) => ({
           history: state.history.filter((h) => h.id !== id),
         })),
+      exportHistory: () => {
+        // Return a copy of the history data
+        return { history: [...get().history] };
+      },
+      importHistory: (data) => {
+        // Validate the data structure
+        if (!data || !Array.isArray(data.history)) {
+          throw new Error('Invalid history data format');
+        }
+        
+        // Replace the entire history with the imported data
+        set({ history: data.history });
+      },
     }),
     {
       name: "tokenomics-arena-storage",
