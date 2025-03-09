@@ -42,7 +42,10 @@ export const getTotalPossiblePairs = (): number => {
 }
 
 // Check if a specific pair has been selected before
-export const isPairSelected = (id1: string, id2: string): boolean => {
+export const isPairSelected = async (id1: string, id2: string): Promise<boolean> => {
+  // Ensure store is initialized before proceeding
+  await ensureStoreInitialized();
+  
   const store = useStore.getState()
   const history = store.history
   
@@ -54,7 +57,10 @@ export const isPairSelected = (id1: string, id2: string): boolean => {
 }
 
 // Check if all possible pairs have been selected
-export const allPairsSelected = (): boolean => {
+export const allPairsSelected = async (): Promise<boolean> => {
+  // Ensure store is initialized before proceeding
+  await ensureStoreInitialized();
+  
   const store = useStore.getState()
   const history = store.history
   
@@ -71,7 +77,10 @@ export const allPairsSelected = (): boolean => {
 /**
  * Get two random cryptocurrencies that haven't been compared before
  */
-export const getRandomPair = (): [Cryptocurrency, Cryptocurrency] | null => {
+export const getRandomPair = async (): Promise<[Cryptocurrency, Cryptocurrency] | null> => {
+  // Ensure store is initialized before proceeding
+  await ensureStoreInitialized();
+  
   const store = useStore.getState();
   const deniedTokens = store.deniedTokens;
   
@@ -94,7 +103,8 @@ export const getRandomPair = (): [Cryptocurrency, Cryptocurrency] | null => {
       const token2 = availableTokens[j];
       
       // Check if this pair has been seen before (in either order)
-      if (!isPairSelected(token1.id, token2.id)) {
+      const isPaired = await isPairSelected(token1.id, token2.id);
+      if (!isPaired) {
         validPairs.push([token1, token2]);
       }
     }
@@ -113,7 +123,10 @@ export const getRandomPair = (): [Cryptocurrency, Cryptocurrency] | null => {
 /**
  * Select the pair of tokens that was compared least recently
  */
-const selectLeastRecentlyComparedPair = (tokens: Cryptocurrency[]): [Cryptocurrency, Cryptocurrency] | null => {
+const selectLeastRecentlyComparedPair = async (tokens: Cryptocurrency[]): Promise<[Cryptocurrency, Cryptocurrency] | null> => {
+  // Ensure store is initialized before proceeding
+  await ensureStoreInitialized();
+  
   const store = useStore.getState();
   const history = store.history;
   
@@ -247,10 +260,10 @@ const calculateTokenStats = (
 /**
  * Select a pair focusing on unexplored tokens
  */
-const selectNewTokenPair = (
+const selectNewTokenPair = async (
   newTokens: Cryptocurrency[],
   seenTokens: Cryptocurrency[]
-): [Cryptocurrency, Cryptocurrency] | null => {
+): Promise<[Cryptocurrency, Cryptocurrency] | null> => {
   // Pick a random new token
   const newToken = newTokens[Math.floor(Math.random() * newTokens.length)];
   
@@ -261,10 +274,14 @@ const selectNewTokenPair = (
     return [newToken, secondNewToken];
   }
   
-  // Try to find a token that hasn't been paired with this new token
-  const validTokens = seenTokens.filter(token => 
-    !isPairSelected(newToken.id, token.id)
-  );
+  // Try to find tokens that haven't been paired with this new token
+  const validTokens = [];
+  for (const token of seenTokens) {
+    const isPaired = await isPairSelected(newToken.id, token.id);
+    if (!isPaired) {
+      validTokens.push(token);
+    }
+  }
   
   if (validTokens.length > 0) {
     return [newToken, validTokens[Math.floor(Math.random() * validTokens.length)]];
@@ -283,7 +300,10 @@ const selectNewTokenPair = (
 /**
  * Smart pair selection that balances exploration and preference refinement
  */
-export const getSmartPair = (): [Cryptocurrency, Cryptocurrency] | null => {
+export const getSmartPair = async (): Promise<[Cryptocurrency, Cryptocurrency] | null> => {
+  // Ensure store is initialized before proceeding
+  await ensureStoreInitialized();
+  
   const store = useStore.getState();
   const history = store.history;
   const deniedTokens = store.deniedTokens;
@@ -299,7 +319,8 @@ export const getSmartPair = (): [Cryptocurrency, Cryptocurrency] | null => {
   }
   
   // Check if all possible pairs have been selected
-  if (allPairsSelected()) {
+  const allPairsAreSelected = await allPairsSelected();
+  if (allPairsAreSelected) {
     // Use the least recently compared pair
     return selectLeastRecentlyComparedPair(availableTokens);
   }
@@ -324,7 +345,8 @@ export const getSmartPair = (): [Cryptocurrency, Cryptocurrency] | null => {
       const token2 = availableTokens[j];
       
       // Check if this pair has been seen before (in either order)
-      if (!isPairSelected(token1.id, token2.id)) {
+      const isPaired = await isPairSelected(token1.id, token2.id);
+      if (!isPaired) {
         validPairs.push([token1, token2]);
       }
     }
@@ -340,7 +362,7 @@ export const getSmartPair = (): [Cryptocurrency, Cryptocurrency] | null => {
   
   // STRATEGY 1: Explore new tokens (if any exist)
   if (randomValue < WEIGHTS.EXPLORE_NEW && newTokens.length > 0) {
-    const newPair = selectNewTokenPair(newTokens, seenTokens);
+    const newPair = await selectNewTokenPair(newTokens, seenTokens);
     if (newPair) return newPair;
   }
   
@@ -484,16 +506,45 @@ export const useStore = create<Store>()(
   ),
 )
 
+// Create a promise to track store initialization
+let storeInitialized = false;
+let initializePromise: Promise<void> | null = null;
+
 // Initialize cryptocurrencies from the store
-const initStore = () => {
-  const state = useStore.getState();
-  
-  if (state.tokens && state.tokens.length > 0) {
-    cryptocurrencies = [...state.tokens];
+const initStore = (): Promise<void> => {
+  if (storeInitialized) {
+    return Promise.resolve();
   }
+  
+  if (initializePromise) {
+    return initializePromise;
+  }
+  
+  initializePromise = new Promise<void>((resolve) => {
+    const state = useStore.getState();
+    
+    if (state.tokens && state.tokens.length > 0) {
+      cryptocurrencies = [...state.tokens];
+    }
+    
+    storeInitialized = true;
+    resolve();
+  });
+  
+  return initializePromise;
+};
+
+// Function to ensure store is initialized before using it
+export const ensureStoreInitialized = (): Promise<void> => {
+  if (typeof window === 'undefined') {
+    // Server-side rendering, return resolved promise
+    return Promise.resolve();
+  }
+  
+  return initStore();
 };
 
 // Call initStore when the module is loaded
 if (typeof window !== 'undefined') {
-  setTimeout(initStore, 0);
+  initStore();
 }

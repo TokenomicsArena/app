@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0f172a" />
+  <g transform="translate(600, 315) scale(8)">
+    <circle cx="8" cy="8" r="6" stroke="#0ea5e9" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M18.09 10.37A6 6 0 1 1 10.34 18" stroke="#0ea5e9" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M7 6h1v4" stroke="#0ea5e9" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="m16.71 13.88.7.71-2.82 2.82" stroke="#0ea5e9" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+  <text x="600" y="500" font-family="Inter, sans-serif" font-size="60" font-weight="bold" fill="white" text-anchor="middle">Tokenomics Arena</text>
+  <text x="600" y="570" font-family="Inter, sans-serif" font-size="30" fill="#94a3b8" text-anchor="middle">Discover your ideal crypto portfolio through pairwise comparisons</text>
+</svg>

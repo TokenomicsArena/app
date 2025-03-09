@@ -22,46 +22,11 @@ const Slider = React.forwardRef<React.ElementRef<typeof SliderPrimitive.Root>, S
     // The Radix UI Slider component already handles step constraints
     // We just need to use the current value for color calculations
     
-    // Calculate colors based on the percentage
-    // At 0%: Right side is blue
-    // At 50%: Both sides are white
-    // At 100%: Left side is red
-    
-    // For the track (right side)
-    // Blue (hsl(210, 100%, 50%)) at 0% to White (hsl(210, 0%, 100%)) at 50%
-    // Keep hue fixed at blue (210), only interpolate saturation and lightness
-    const trackHue = 210; // Fixed blue hue
-    
-    // Square the normalized value to make changes more evident around 50%
-    // First normalize to [0,1] range for 0-50% range
-    const normalizedTrack = percentage <= 50 ? percentage / 50 : 1;
-    // Square the normalized value (makes curve steeper near 50%)
-    const squaredTrack = Math.pow(normalizedTrack, 10);
-    // Scale back to get the saturation (100% at 0, 0% at 50)
-    const trackSaturation = percentage <= 50 ? 100 - (squaredTrack * 100) : 0;
-    
-    const trackLightness = percentage <= 50 ? 50 + percentage : 100;
-    const trackColor = percentage <= 50 
-      ? `hsl(${trackHue}, ${trackSaturation}%, ${trackLightness}%)`
-      : "hsl(0, 0%, 100%)";
-    
-    // For the range (left side)
-    // White (hsl(0, 0%, 100%)) at 50% to Red (hsl(0, 100%, 50%)) at 100%
-    // Keep hue fixed at red (0), only interpolate saturation and lightness
-    const rangeHue = 0; // Fixed red hue
-    
-    // Square the normalized value to make changes more evident around 50%
-    // First normalize to [0,1] range for 50-100% range
-    const normalizedRange = percentage >= 50 ? (percentage - 50) / 50 : 0;
-    // Square the normalized value (makes curve steeper near 50%)
-    const squaredRange = Math.pow(normalizedRange, 0.1);
-    // Scale back to get the saturation (0% at 50, 100% at 100)
-    const rangeSaturation = percentage >= 50 ? squaredRange * 100 : 0;
-    
-    const rangeLightness = percentage >= 50 ? 100 - (percentage - 50) : 100;
-    const rangeColor = percentage >= 50 
-      ? `hsl(${rangeHue}, ${rangeSaturation}%, ${rangeLightness}%)`
-      : "hsl(0, 0%, 100%)";
+    // Use fixed colors for the track and range that match the token colors in token-selection.tsx
+    // Track (right side) is always red-500
+    // Range (left side) is always blue-500
+    const trackColor = "rgb(239, 68, 68)"; // red-500 in RGB
+    const rangeColor = "rgb(59, 130, 246)"; // blue-500 in RGB
     
     React.useEffect(() => {
       if (props.value) {

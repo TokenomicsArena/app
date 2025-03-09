@@ -8,10 +8,8 @@ export default function PrivacyPage() {
     <main className="container max-w-4xl mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
       <p className="text-muted-foreground mb-8">
-      
-      
-At Tokenomics Arena, we prioritize your privacy and transparency. We've engineered this site to deliver top-tier privacy, which we believe is a universal right. Privacy enthusiasts can use it with confidence: we don't collect or store data you actively input into forms, fields, or interactive features on this website.
-        </p>
+        At Tokenomics Arena, we prioritize your privacy and transparency. We've engineered this site to deliver top-tier privacy, which we believe is a universal right. Privacy enthusiasts can use it with confidence: we don't collect or store data you actively input into forms, fields, or interactive features on this website.
+      </p>
 
 
       <div className="mb-8">
@@ -19,7 +17,7 @@ At Tokenomics Arena, we prioritize your privacy and transparency. We've engineer
         
         <ul className="list-disc pl-6 space-y-4 text-muted-foreground">
           <li>
-            <span className="text-foreground font-semibold">This website stores data exclusively on your device — none of your choices or preferences are transfered to any servers</span>.
+            <span className="text-foreground font-semibold">This website stores data exclusively on your device — none of your choices or preferences are transferred to any servers</span>.
           </li>
 
           <li>
@@ -59,7 +57,7 @@ At Tokenomics Arena, we prioritize your privacy and transparency. We've engineer
         <p className="mb-2 mt-4 font-bold">
           This data stays on your device, inaccessible to us or third parties, and is never uploaded.
         </p>
-        </div>
+      </div>
       <div className="mb-8">
         <h2 className="text-2xl mb-4">Network Information</h2>
         <p className="text-muted-foreground mb-2 mt-4">
@@ -96,10 +94,23 @@ At Tokenomics Arena, we prioritize your privacy and transparency. We've engineer
       </div>
 
       <div className="mb-8">
+        <h2 className="text-2xl font-semibold mb-4">Social Media Links</h2>
+        <p className="text-muted-foreground mb-4">
+          Our website contains links to our social media profiles on platforms like Twitter and Bluesky. Please be aware that clicking these links will take you to external websites with their own privacy policies and data collection practices. We encourage you to review the privacy policies of these third-party sites before interacting with them.
+        </p>
+        <p className="text-muted-foreground mb-4">
+          We do not track your interactions with these social media links, nor do we receive data from these platforms about your visits originating from our website.
+        </p>
+      </div>
+
+      <div className="mb-8">
         <h2 className="text-2xl font-semibold mb-4">Legal Compliance</h2>
         <p className="text-muted-foreground mb-4">
           For users in the European Union or other regulated regions, this architecture was built to comply by default with applicable data protection laws to the extent possible.
           This design ensures that your privacy rights are respected following the spirit of the GDPR and other laws. If you believe we are missing something; please contact us at <a href="mailto:privacy@tokenomics-arena.com">privacy@tokenomics-arena.com</a>.
+        </p>
+        <p className="text-muted-foreground mb-4">
+          If you contact us via email we will use the information you provide (including your email address and any personal details included in your message) solely to respond to your inquiry. We do not use this information for marketing purposes or share it with third parties.
         </p>
       </div>
       

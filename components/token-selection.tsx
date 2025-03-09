@@ -83,7 +83,7 @@ export default function TokenSelection({
       </div>
 
       <div className="mb-8">
-        <div className="flex flex-col sm:flex-row items-center justify-between mb-4 sm:mb-2 gap-2 sm:gap-0">
+        <div className="flex flex-row items-center justify-between mb-4 sm:mb-2 gap-2 sm:gap-0">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
             <p className="text-sm font-medium">100% {cryptoPair[0].name}</p>

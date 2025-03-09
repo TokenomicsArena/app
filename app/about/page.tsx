@@ -2,40 +2,19 @@
 
 import type React from "react"
 
-import { useState } from "react"
 import Link from "next/link"
-import { AtSign, Send, Twitter } from "lucide-react"
+import { Twitter } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { toast } from "@/components/ui/use-toast"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { BlueSky } from "@/components/ui/bluesky"
 
 export default function AboutPage() {
-  const [email, setEmail] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-
-    // Simulate API call
-    setTimeout(() => {
-      toast({
-        title: "Subscribed!",
-        description: `You've been added to our newsletter with ${email}`,
-      })
-      setEmail("")
-      setIsSubmitting(false)
-    }, 1000)
-  }
-
   return (
     <main className="container max-w-4xl mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-2">About Tokenomics Arena</h1>
       <noscript>
-      <p className="text-xl text-red mb-8">This app requires javascript to work.</p>
+        <p className="text-xl text-red-500 mb-8">This app requires JavaScript to function. Our JavaScript code contains no tracking functionality and is essential for the core features of this application.</p>
       </noscript>
       <p className="text-muted-foreground mb-8">Discover your ideal crypto portfolio through pairwise comparisons</p>
 

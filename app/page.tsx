@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
 import TokenSelection from "@/components/token-selection"
-import { getRandomPair, getSmartPair, useStore } from "@/lib/store"
+import { Cryptocurrency, getRandomPair, getSmartPair, useStore } from "@/lib/store"
 import Link from "next/link"
 
 export default function Home() {
@@ -15,7 +15,8 @@ export default function Home() {
   const router = useRouter()
 
   // Initialize with null to prevent hydration issues
-  const [cryptoPair, setCryptoPair] = useState<ReturnType<typeof getRandomPair> | null>(null)
+  const [cryptoPair, setCryptoPair] = useState<[Cryptocurrency, Cryptocurrency] | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   
   // Initialize the token pair on the client side only
   useEffect(() => {
@@ -24,33 +25,51 @@ export default function Home() {
     
     if (editId) {
       // If we're editing, the other useEffect will handle loading the pair
+      setIsLoading(false)
       return;
     }
     
-    // Only load a random pair if we're not editing
-    // Try to get a smart pair first
-    const smartPair = getSmartPair()
-    
-    // If all pairs have been exhausted or it's the first load, try random pair
-    if (smartPair === null) {
-      const randomPair = getRandomPair()
-      
-      if (randomPair === null) {
-        // If both smart and random selection fail, show a message
+    // Define an async function to load the pair
+    const loadPair = async () => {
+      setIsLoading(true)
+      try {
+        // Only load a random pair if we're not editing
+        // Try to get a smart pair first
+        const smartPair = await getSmartPair()
+        
+        // If all pairs have been exhausted or it's the first load, try random pair
+        if (smartPair === null) {
+          const randomPair = await getRandomPair()
+          
+          if (randomPair === null) {
+            // If both smart and random selection fail, show a message
+            toast({
+              title: "All combinations completed!",
+              description: "You've seen all possible token combinations.",
+              variant: "destructive"
+            })
+            
+            // Redirect to history page
+            router.push('/history')
+          } else {
+            setCryptoPair(randomPair)
+          }
+        } else {
+          setCryptoPair(smartPair)
+        }
+      } catch (error) {
+        console.error("Error loading token pair:", error)
         toast({
-          title: "All combinations completed!",
-          description: "You've seen all possible token combinations.",
+          title: "Error loading tokens",
+          description: "There was a problem loading the token pair. Please try again.",
           variant: "destructive"
         })
-        
-        // Redirect to history page
-        router.push('/history')
-      } else {
-        setCryptoPair(randomPair)
+      } finally {
+        setIsLoading(false)
       }
-    } else {
-      setCryptoPair(smartPair)
     }
+    
+    loadPair()
   }, [router, searchParams])
   const [allocation, setAllocation] = useState([50])
   const [explanation, setExplanation] = useState("")
@@ -94,7 +113,7 @@ export default function Home() {
     }
   }, [searchParams, history]) // Only depend on searchParams and history
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Don't proceed if cryptoPair is null
     if (!cryptoPair) return
     
@@ -133,8 +152,7 @@ export default function Home() {
       explanation: explanation,
     }
 
-  // Process the submission with minimal delay
-  setTimeout(() => {
+    try {
       if (editingId) {
         // Update existing item
         updateHistory(editingId, historyItem)
@@ -159,11 +177,11 @@ export default function Home() {
       }
 
       // Reset for next pair using the smart selection
-      const nextPair = getSmartPair()
+      const nextPair = await getSmartPair()
       
       // If all pairs have been exhausted, try random pair
       if (nextPair === null) {
-        const randomPair = getRandomPair()
+        const randomPair = await getRandomPair()
         
         if (randomPair === null) {
           // If both smart and random selection fail, show a message
@@ -185,111 +203,156 @@ export default function Home() {
       } else {
         setCryptoPair(nextPair)
       }
+      
       setAllocation([50])
       setExplanation("")
-      setIsSubmitting(false)
       setEditingId(null)
-    }, 100) // Reduced from 1000ms to 100ms for faster submission
+    } catch (error) {
+      console.error("Error submitting selection:", error)
+      toast({
+        title: "Error submitting",
+        description: "There was a problem submitting your selection. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     // Reset the processed flag when canceling
     editProcessed.current = false
     setEditingId(null)
     
-    // Get next pair using smart selection
-    const nextPair = getSmartPair()
-    
-    // If all pairs have been exhausted, try random pair
-    if (nextPair === null) {
-      const randomPair = getRandomPair()
+    setIsLoading(true)
+    try {
+      // Get next pair using smart selection
+      const nextPair = await getSmartPair()
+      
+      // If all pairs have been exhausted, try random pair
+      if (nextPair === null) {
+        const randomPair = await getRandomPair()
+        
+        if (randomPair === null) {
+          // If both smart and random selection fail, show a message
+          toast({
+            title: "All combinations completed!",
+            description: "You've seen all possible token combinations.",
+          })
+          
+          // Redirect to history page
+          router.push('/history')
+          return
+        } else {
+          setCryptoPair(randomPair)
+          
+          toast({
+            title: "New random pair!",
+            description: "Using random selection as all smart pairs are exhausted.",
+          })
+        }
+      } else {
+        setCryptoPair(nextPair)
+      }
+      
+      setAllocation([50])
+      setExplanation("")
+      router.push("/")
+    } catch (error) {
+      console.error("Error canceling edit:", error)
+      toast({
+        title: "Error loading tokens",
+        description: "There was a problem loading the next token pair. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleRandomize = async () => {
+    setIsLoading(true)
+    try {
+      // Get a completely random pair
+      const randomPair = await getRandomPair()
       
       if (randomPair === null) {
-        // If both smart and random selection fail, show a message
         toast({
           title: "All combinations completed!",
           description: "You've seen all possible token combinations.",
+          variant: "destructive"
         })
-        
-        // Redirect to history page
-        router.push('/history')
         return
-      } else {
-        setCryptoPair(randomPair)
-        
-        toast({
-          title: "New random pair!",
-          description: "Using random selection as all smart pairs are exhausted.",
-        })
       }
-    } else {
-      setCryptoPair(nextPair)
-    }
-    
-    setAllocation([50])
-    setExplanation("")
-    router.push("/")
-  }
-
-  const handleRandomize = () => {
-    // Get a completely random pair
-    const randomPair = getRandomPair()
-    
-    if (randomPair === null) {
+      
+      setCryptoPair(randomPair)
+      setAllocation([50]) // Reset allocation to 50/50
+      
       toast({
-        title: "All combinations completed!",
-        description: "You've seen all possible token combinations.",
+        title: "Randomized!",
+        description: `New pair: ${randomPair[0].name} vs ${randomPair[1].name}`,
+      })
+    } catch (error) {
+      console.error("Error randomizing pair:", error)
+      toast({
+        title: "Error randomizing",
+        description: "There was a problem getting a random token pair. Please try again.",
         variant: "destructive"
       })
-      return
+    } finally {
+      setIsLoading(false)
     }
-    
-    setCryptoPair(randomPair)
-    setAllocation([50]) // Reset allocation to 50/50
-    
-    toast({
-      title: "Randomized!",
-      description: `New pair: ${randomPair[0].name} vs ${randomPair[1].name}`,
-    })
   }
 
   // Handle denying a token
-  const handleDenyToken = (id: string) => {
+  const handleDenyToken = async (id: string) => {
     toggleDenyToken(id);
     
-    // Get a new pair after denying
-    const nextPair = getSmartPair();
-    
-    // If all pairs have been exhausted, try random pair
-    if (nextPair === null) {
-      const randomPair = getRandomPair();
+    setIsLoading(true)
+    try {
+      // Get a new pair after denying
+      const nextPair = await getSmartPair();
       
-      if (randomPair === null) {
-        // If both smart and random selection fail, show a message
-        toast({
-          title: "All combinations completed!",
-          description: "You've seen all possible token combinations.",
-        });
+      // If all pairs have been exhausted, try random pair
+      if (nextPair === null) {
+        const randomPair = await getRandomPair();
         
-        // Redirect to history page
-        router.push('/history');
+        if (randomPair === null) {
+          // If both smart and random selection fail, show a message
+          toast({
+            title: "All combinations completed!",
+            description: "You've seen all possible token combinations.",
+          });
+          
+          // Redirect to history page
+          router.push('/history');
+        } else {
+          setCryptoPair(randomPair);
+          setAllocation([50]); // Reset allocation to 50/50
+          
+          toast({
+            title: "Token denied",
+            description: "This token won't appear in future selections. Using random selection.",
+          });
+        }
       } else {
-        setCryptoPair(randomPair);
+        setCryptoPair(nextPair);
         setAllocation([50]); // Reset allocation to 50/50
         
         toast({
-          title: "Token denied",
-          description: "This token won't appear in future selections. Using random selection.",
+            title: "Token denied",
+            description: "This token won't appear in future selections.",
         });
       }
-    } else {
-      setCryptoPair(nextPair);
-      setAllocation([50]); // Reset allocation to 50/50
-      
+    } catch (error) {
+      console.error("Error denying token:", error)
       toast({
-          title: "Token denied",
-          description: "This token won't appear in future selections.",
-      });
+        title: "Error denying token",
+        description: "There was a problem updating the token list. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
     }
   };
 

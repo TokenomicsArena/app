@@ -11,8 +11,41 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Tokenomics Arena",
-  description: "Compare cryptocurrencies and build your ideal portfolio",
-    generator: 'v0.dev'
+  description: "Compare cryptocurrencies and build your ideal portfolio through pairwise comparisons",
+  generator: 'v0.dev',
+  metadataBase: new URL('https://tokenomics-arena.com'),
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '32x32' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ]
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://tokenomics-arena.com',
+    title: 'Tokenomics Arena',
+    description: 'Discover your ideal crypto portfolio through pairwise comparisons',
+    siteName: 'Tokenomics Arena',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Tokenomics Arena - Compare cryptocurrencies and build your ideal portfolio'
+      }
+    ]
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Tokenomics Arena',
+    description: 'Discover your ideal crypto portfolio through pairwise comparisons',
+    creator: '@TokenomicsArena',
+    images: ['/og-image.png']
+  }
 }
 
 export default async function RootLayout({
