@@ -30,10 +30,54 @@ export type HistoryItem = {
   explanation: string
 }
 
-// Get two random cryptocurrencies (simple version without history)
-export const getRandomPair = () => {
-  const shuffled = [...cryptocurrencies].sort(() => 0.5 - Math.random())
-  return [shuffled[0], shuffled[1]]
+// Get two random cryptocurrencies that haven't been compared before
+export const getRandomPair = (): [(typeof cryptocurrencies)[0], (typeof cryptocurrencies)[0]] | null => {
+  // Get the store to access denied tokens and history
+  const store = useStore.getState();
+  const deniedTokens = store.deniedTokens;
+  const history = store.history;
+  
+  // Filter out denied tokens
+  const availableTokens = cryptocurrencies.filter(token => !deniedTokens.includes(token.id));
+  
+  // Check if we have enough tokens
+  if (availableTokens.length < 2) {
+    console.warn("Not enough tokens available after filtering denylist. Resetting denylist.");
+    store.resetDenylist();
+    return getRandomPair(); // Try again with reset blacklist
+  }
+  
+  // Find all valid pairs that haven't been compared yet
+  const validPairs: [(typeof cryptocurrencies)[0], (typeof cryptocurrencies)[0]][] = [];
+  
+  for (let i = 0; i < availableTokens.length; i++) {
+    for (let j = i + 1; j < availableTokens.length; j++) {
+      const token1 = availableTokens[i];
+      const token2 = availableTokens[j];
+      
+      // Check if this pair has been seen before (in either order)
+      if (!isPairSelected(token1.id, token2.id)) {
+        validPairs.push([token1, token2]);
+      }
+    }
+  }
+  
+  // If we found valid pairs, choose one randomly
+  if (validPairs.length > 0) {
+    return validPairs[Math.floor(Math.random() * validPairs.length)];
+  }
+  
+  // If all pairs have been compared, return null or consider reusing the least recently compared pair
+  console.warn("All possible token pairs have been compared. Consider adding new tokens or resetting history.");
+  
+  // As a last resort, just return two different tokens
+  // This should only happen if the user has compared all possible pairs and continues using the app
+  if (availableTokens.length >= 2) {
+    const shuffled = [...availableTokens].sort(() => 0.5 - Math.random());
+    return [shuffled[0], shuffled[1]];
+  }
+  
+  return null;
 }
 
 // Calculate the total number of possible pairs
@@ -196,6 +240,25 @@ const selectNewTokenPair = (
     sortedSeenTokens.length - 1
   );
   
+  // Check if this pair has already been compared (in either order)
+  const candidateToken = sortedSeenTokens[topIndex];
+  if (isPairSelected(newToken.id, candidateToken.id)) {
+    // Try to find another token that hasn't been paired with this new token
+    const validTokens = sortedSeenTokens.filter(token => 
+      !isPairSelected(newToken.id, token.id)
+    );
+    
+    if (validTokens.length > 0) {
+      return [newToken, validTokens[Math.floor(Math.random() * validTokens.length)]];
+    }
+    
+    // If all tokens have been paired with this new token, try another new token
+    const otherNewTokens = newTokens.filter(token => token.id !== newToken.id);
+    if (otherNewTokens.length > 0) {
+      return selectNewTokenPair(otherNewTokens, seenTokens, tokenStats);
+    }
+  }
+  
   return [newToken, sortedSeenTokens[topIndex]];
 };
 
@@ -228,9 +291,10 @@ const selectHighPreferencePair = (
   const topToken = sortedTokens[topTokenIndex];
   
   // Find tokens that haven't been compared with the selected top token
+  // Use isPairSelected to check in both directions
   const pairCandidates = sortedTokens.filter(token => 
     token.id !== topToken.id && 
-    !tokenStats[topToken.id].pairHistory[token.id]
+    !isPairSelected(topToken.id, token.id)
   );
   
   // If there are good candidates, use one of them
@@ -241,8 +305,11 @@ const selectHighPreferencePair = (
   
   // Otherwise just pick another token that isn't the same
   const otherTokens = sortedTokens.filter(token => token.id !== topToken.id);
-  const secondToken = otherTokens[Math.floor(Math.random() * otherTokens.length)];
+  if (otherTokens.length === 0) {
+    return null; // No other tokens available
+  }
   
+  const secondToken = otherTokens[Math.floor(Math.random() * otherTokens.length)];
   return [topToken, secondToken];
 };
 
@@ -276,10 +343,10 @@ const selectLowPreferencePair = (
   const lowToken = sortedTokens[lowTokenIndex];
   
   // For the second token, prefer one with higher preference
-  // but that hasn't been compared with the low token
+  // but that hasn't been compared with the low token (in either direction)
   const highTokens = tokens.filter(token => 
     token.id !== lowToken.id && 
-    !tokenStats[lowToken.id].pairHistory[token.id] &&
+    !isPairSelected(lowToken.id, token.id) &&
     tokenStats[token.id] && 
     tokenStats[token.id].allocation > tokenStats[lowToken.id].allocation
   );
@@ -290,8 +357,11 @@ const selectLowPreferencePair = (
   
   // Fallback to any non-same token
   const otherTokens = tokens.filter(token => token.id !== lowToken.id);
-  const secondToken = otherTokens[Math.floor(Math.random() * otherTokens.length)];
+  if (otherTokens.length === 0) {
+    return null; // No other tokens available
+  }
   
+  const secondToken = otherTokens[Math.floor(Math.random() * otherTokens.length)];
   return [lowToken, secondToken];
 };
 
@@ -316,12 +386,8 @@ const selectRandomPair = (
         const token1 = tokens[i];
         const token2 = tokens[j];
         
-        // Check if these tokens have been compared before (in either order)
-        const haveBeenCompared = 
-          (tokenStats[token1.id]?.pairHistory[token2.id]) || 
-          (tokenStats[token2.id]?.pairHistory[token1.id]);
-        
-        if (!haveBeenCompared) {
+        // Use isPairSelected to check if this pair has been seen in either order
+        if (!isPairSelected(token1.id, token2.id)) {
           validPairs.push([token1, token2]);
         }
       }
@@ -358,23 +424,27 @@ const checkForValidPairs = (
   tokens: typeof cryptocurrencies,
   tokenStats: Record<string, any>
 ): boolean => {
-  for (let i = 0; i < tokens.length; i++) {
-    for (let j = i + 1; j < tokens.length; j++) {
-      const token1 = tokens[i];
-      const token2 = tokens[j];
-      
-      // Check if these tokens have been compared before (in either order)
-      const haveBeenCompared = 
-        (tokenStats[token1.id]?.pairHistory[token2.id]) || 
-        (tokenStats[token2.id]?.pairHistory[token1.id]);
-      
-      if (!haveBeenCompared) {
-        return true; // Found at least one valid pair
+  // Create a set to track normalized pair keys that have been seen
+  const seenPairs = new Set<string>();
+  
+  // Populate the set with all pairs that have been seen (using normalized keys)
+  for (const token1 of tokens) {
+    for (const token2 of tokens) {
+      if (token1.id !== token2.id) {
+        // Check if these tokens have been compared before (in either order)
+        if (isPairSelected(token1.id, token2.id)) {
+          // Add the normalized pair key to the set
+          seenPairs.add(getNormalizedPairKey(token1.id, token2.id));
+        }
       }
     }
   }
   
-  return false; // No valid pairs found
+  // Calculate total possible unique pairs
+  const totalPossiblePairs = getTotalPossiblePairs();
+  
+  // If we've seen fewer pairs than the total possible, there are valid pairs left
+  return seenPairs.size < totalPossiblePairs;
 };
 
 /**
@@ -436,9 +506,20 @@ const findLastComparisonTimestamp = (
  * This function will be used after the store is initialized
  */
 export const getSmartPair = (): [(typeof cryptocurrencies)[0], (typeof cryptocurrencies)[0]] | null => {
-  // Get the store to access history
+  // Get the store to access history and denied tokens
   const store = useStore.getState();
   const history = store.history;
+  const deniedTokens = store.deniedTokens;
+  
+  // Filter out denied tokens
+  const availableTokens = cryptocurrencies.filter(token => !deniedTokens.includes(token.id));
+  
+  // Check if we have enough tokens
+  if (availableTokens.length < 2) {
+    console.warn("Not enough tokens available after filtering denylist. Resetting denylist.");
+    store.resetDenylist();
+    return getSmartPair(); // Try again with reset blacklist
+  }
 
   // Check if all possible pairs have been selected
   if (allPairsSelected()) {
@@ -477,17 +558,17 @@ export const getSmartPair = (): [(typeof cryptocurrencies)[0], (typeof cryptocur
   }
   
   // Calculate token statistics from history
-  const tokenStats = calculateTokenStats(cryptocurrencies, history, currentAllocations);
+  const tokenStats = calculateTokenStats(availableTokens, history, currentAllocations);
   
   // Sort tokens into categories
-  const newTokens = cryptocurrencies.filter(token => !tokenStats[token.id] || tokenStats[token.id].comparisonCount === 0);
-  const seenTokens = cryptocurrencies.filter(token => tokenStats[token.id] && tokenStats[token.id].comparisonCount > 0);
+  const newTokens = availableTokens.filter(token => !tokenStats[token.id] || tokenStats[token.id].comparisonCount === 0);
+  const seenTokens = availableTokens.filter(token => tokenStats[token.id] && tokenStats[token.id].comparisonCount > 0);
   
   // Selection strategy based on weights
   const randomValue = Math.random();
   
   // Check if we have any valid pairs left at all
-  const hasValidPairs = checkForValidPairs(cryptocurrencies, tokenStats);
+  const hasValidPairs = checkForValidPairs(availableTokens, tokenStats);
   
   if (!hasValidPairs) {
     console.warn("All possible token pairs have been compared. Consider adding new tokens or resetting history.");
@@ -501,15 +582,15 @@ export const getSmartPair = (): [(typeof cryptocurrencies)[0], (typeof cryptocur
   } 
   // STRATEGY 2: Refine high preference tokens
   else if (randomValue < WEIGHTS.EXPLORE_NEW + WEIGHTS.REFINE_PREFERRED) {
-    return selectHighPreferencePair(cryptocurrencies, tokenStats);
+    return selectHighPreferencePair(availableTokens, tokenStats);
   }
   // STRATEGY 3: Reconsider low preference tokens
   else if (randomValue < WEIGHTS.EXPLORE_NEW + WEIGHTS.REFINE_PREFERRED + WEIGHTS.RECONSIDER_LOW) {
-    return selectLowPreferencePair(cryptocurrencies, tokenStats);
+    return selectLowPreferencePair(availableTokens, tokenStats);
   }
   // STRATEGY 4: Pure random selection (fallback)
   else {
-    return selectRandomPair(cryptocurrencies, tokenStats);
+    return selectRandomPair(availableTokens, tokenStats);
   }
 };
 
@@ -533,6 +614,11 @@ type Store = {
   deleteToken: (id: string) => void
   resetTokensToDefault: () => void
   setTokens: (tokens: Cryptocurrency[]) => void
+  
+      // Denylist management
+      deniedTokens: string[] // Array of token IDs that should not be shown
+      toggleDenyToken: (id: string) => void
+      resetDenylist: () => void
 }
 
 export const useStore = create<Store>()(
@@ -627,6 +713,32 @@ export const useStore = create<Store>()(
           cryptocurrencies = [...tokens];
           
           return { tokens };
+        }),
+        
+      // Denylist management
+      deniedTokens: [],
+      toggleDenyToken: (id) =>
+        set((state) => {
+          let updatedDenylist;
+          
+          // Toggle token ID in denylist - remove if present, add if not
+          if (state.deniedTokens.includes(id)) {
+            updatedDenylist = state.deniedTokens.filter(tokenId => tokenId !== id);
+          } else {
+            updatedDenylist = [...state.deniedTokens, id];
+          }
+          
+          // Update the exported cryptocurrencies array to filter out denied tokens
+          cryptocurrencies = state.tokens.filter(token => !updatedDenylist.includes(token.id));
+          
+          return { deniedTokens: updatedDenylist };
+        }),
+      resetDenylist: () =>
+        set((state) => {
+          // Reset denylist and update cryptocurrencies
+          cryptocurrencies = [...state.tokens];
+          
+          return { deniedTokens: [] };
         }),
     }),
     {

@@ -1,10 +1,11 @@
 "use client"
 import Image from "next/image"
-import { Info } from "lucide-react"
+import { Info, X } from "lucide-react"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/button"
 
 type TokenSelectionProps = {
   cryptoPair: Array<{
@@ -17,6 +18,11 @@ type TokenSelectionProps = {
   explanation: string
   onAllocationChange: (value: number[]) => void
   onExplanationChange: (value: string) => void
+  onDenylistToken?: (id: string) => void // TODO: Rename to onDenyToken in a future update
+  onSubmit?: () => void
+  onRandomize?: () => void
+  isSubmitting?: boolean
+  isEditing?: boolean
 }
 
 export default function TokenSelection({
@@ -25,6 +31,11 @@ export default function TokenSelection({
   explanation,
   onAllocationChange,
   onExplanationChange,
+  onDenylistToken,
+  onSubmit,
+  onRandomize,
+  isSubmitting = false,
+  isEditing = false,
 }: TokenSelectionProps) {
 
   // Show loading state if cryptoPair is null
@@ -44,7 +55,17 @@ export default function TokenSelection({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {cryptoPair.map((crypto, index) => (
-          <Card key={crypto.id} className={`border-2 ${index === 0 ? "border-blue-500" : "border-red-500"}`}>
+          <Card key={crypto.id} className={`border-2 ${index === 0 ? "border-blue-500" : "border-red-500"} relative`}>
+            {onDenylistToken && (
+              <button 
+                onClick={() => onDenylistToken(crypto.id)}
+                className="absolute top-2 right-2 p-1 rounded-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+                title="Never show this token again"
+                aria-label="Deny token"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
             <CardContent className="p-6 flex flex-col items-center">
               <Image
                 src={crypto.logo || "/placeholder.svg"}
@@ -88,6 +109,35 @@ export default function TokenSelection({
         />
       </div>
 
+      {/* Action Buttons */}
+      {(onSubmit || onRandomize) && (
+        <div className="flex flex-col gap-4 mb-8">
+          {onSubmit && (
+            <Button 
+              onClick={onSubmit} 
+              disabled={isSubmitting} 
+              size="lg"
+              className="w-full"
+            >
+              {isSubmitting ? "Submitting..." : isEditing ? "Update Selection" : "Save & Continue"}
+              {!isSubmitting && !isEditing && <span className="ml-2">→</span>}
+            </Button>
+          )}
+          
+          {onRandomize && !isEditing && (
+            <Button 
+              variant="outline" 
+              onClick={onRandomize} 
+              size="lg"
+              className="w-full"
+            >
+              Randomize
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Optional Explanation */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-2">
           <Info className="h-4 w-4" />

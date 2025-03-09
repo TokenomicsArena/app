@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react"
 import Image from "next/image"
-import { Trash2, Upload, Save, Plus, AlertTriangle } from "lucide-react"
+import { Trash2, Upload, Save, Plus, AlertTriangle, EyeOff, Eye } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,8 +44,19 @@ type Cryptocurrency = {
 export default function SettingsPage() {
   const { history, exportHistory } = useStore()
   
-  // Get tokens from the store
-  const { tokens, setTokens, updateToken, addToken, deleteToken, resetTokensToDefault, clearHistory } = useStore()
+  // Get tokens and denylist from the store
+  const { 
+    tokens, 
+    setTokens, 
+    updateToken, 
+    addToken, 
+    deleteToken, 
+    resetTokensToDefault, 
+    clearHistory,
+    deniedTokens,
+    toggleDenyToken,
+    resetDenylist
+  } = useStore()
   
   // State for token editing
   const [editingToken, setEditingToken] = useState<Cryptocurrency | null>(null)
@@ -270,11 +281,24 @@ export default function SettingsPage() {
     }
   }
   
+  // Toggle token denylist status
+  const toggleDenylist = (tokenId: string) => {
+    toggleDenyToken(tokenId);
+    
+    const isDenied = deniedTokens.includes(tokenId);
+    const token = tokens.find(t => t.id === tokenId);
+    
+    toast({
+      title: isDenied ? "Token denied" : "Token allowed",
+      description: `${token?.name} has been ${isDenied ? "added to" : "removed from"} the denylist`,
+    });
+  }
+  
   return (
     <main className="container max-w-6xl mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
       
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
           <CardTitle>Token Management</CardTitle>
           <CardDescription>
@@ -323,15 +347,25 @@ export default function SettingsPage() {
               </TableHeader>
               <TableBody>
                 {tokens.map((token) => (
-                  <TableRow key={token.id}>
+                  <TableRow 
+                    key={token.id}
+                    className={deniedTokens.includes(token.id) ? "opacity-60 bg-muted/50" : ""}
+                  >
                     <TableCell>
-                      <Image
-                        src={token.logo}
-                        alt={token.name}
-                        width={40}
-                        height={40}
-                        className="rounded-full"
-                      />
+                      <div className="relative">
+                        <Image
+                          src={token.logo}
+                          alt={token.name}
+                          width={40}
+                          height={40}
+                          className={`rounded-full ${deniedTokens.includes(token.id) ? "grayscale" : ""}`}
+                        />
+                        {deniedTokens.includes(token.id) && (
+                          <div className="absolute -top-1 -right-1 bg-amber-500 text-white rounded-full p-0.5">
+                            <EyeOff className="h-3 w-3" />
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="font-medium">{token.name}</TableCell>
                     <TableCell>{token.symbol}</TableCell>
@@ -339,6 +373,24 @@ export default function SettingsPage() {
                     <TableCell>{token.marketCap ? formatMarketCap(token.marketCap) : "N/A"}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleDenylist(token.id)}
+                          className={`${deniedTokens.includes(token.id) ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}
+                        >
+                          {deniedTokens.includes(token.id) ? (
+                            <span className="flex items-center gap-1">
+                              <Eye className="h-4 w-4" />
+                              Allow
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1">
+                              <EyeOff className="h-4 w-4" />
+                              Deny
+                            </span>
+                          )}
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -363,6 +415,77 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Denylist Management Card */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Denylist Management</CardTitle>
+          <CardDescription>
+            Manage tokens that are excluded from comparisons in the arena
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-between mb-4">
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">
+                Denied tokens ({deniedTokens.length}) are excluded from the token selection process.
+                They will not appear in the arena for comparison.
+              </p>
+              
+              {deniedTokens.length > 0 ? (
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {deniedTokens.map(tokenId => {
+                    const token = tokens.find(t => t.id === tokenId);
+                    return token ? (
+                      <div 
+                        key={token.id}
+                        className="flex items-center gap-2 bg-muted/80 rounded-full pl-1 pr-2 py-1"
+                      >
+                        <Image
+                          src={token.logo}
+                          alt={token.name}
+                          width={24}
+                          height={24}
+                          className="rounded-full grayscale"
+                        />
+                        <span className="text-sm">{token.symbol}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-5 p-0 rounded-full hover:bg-background/80"
+                          onClick={() => toggleDenylist(token.id)}
+                        >
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm italic text-muted-foreground">No tokens are currently denied</p>
+              )}
+            </div>
+            
+            {deniedTokens.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  resetDenylist();
+                  toast({
+                    title: "Denylist reset",
+                    description: "All tokens have been removed from the denylist",
+                  });
+                }}
+                className="h-9"
+              >
+                Reset Denylist
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      
       <Card className="border-destructive">
         <CardHeader className="bg-destructive/10">
           <div className="flex items-center gap-2">

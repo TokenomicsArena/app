@@ -2,17 +2,15 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { ArrowRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
 import TokenSelection from "@/components/token-selection"
 import { getRandomPair, getSmartPair, useStore } from "@/lib/store"
-// Don't import AboutPage component directly
 import Link from "next/link"
 
 export default function Home() {
-  const { history, addToHistory, updateHistory } = useStore()
+  const { history, addToHistory, updateHistory, toggleDenyToken } = useStore()
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -24,13 +22,27 @@ export default function Home() {
     // Try to get a smart pair first
     const smartPair = getSmartPair()
     
-    // If all pairs have been exhausted or it's the first load, use random pair
+    // If all pairs have been exhausted or it's the first load, try random pair
     if (smartPair === null) {
-      setCryptoPair(getRandomPair())
+      const randomPair = getRandomPair()
+      
+      if (randomPair === null) {
+        // If both smart and random selection fail, show a message
+        toast({
+          title: "All combinations completed!",
+          description: "You've seen all possible token combinations.",
+          variant: "destructive"
+        })
+        
+        // Redirect to history page
+        router.push('/history')
+      } else {
+        setCryptoPair(randomPair)
+      }
     } else {
       setCryptoPair(smartPair)
     }
-  }, [])
+  }, [router])
   const [allocation, setAllocation] = useState([50])
   const [explanation, setExplanation] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -103,8 +115,8 @@ export default function Home() {
       explanation: explanation,
     }
 
-    // Simulate API call
-    setTimeout(() => {
+  // Process the submission with minimal delay
+  setTimeout(() => {
       if (editingId) {
         // Update existing item
         updateHistory(editingId, historyItem)
@@ -131,14 +143,27 @@ export default function Home() {
       // Reset for next pair using the smart selection
       const nextPair = getSmartPair()
       
-      // If all pairs have been exhausted, show a message and use random pair
+      // If all pairs have been exhausted, try random pair
       if (nextPair === null) {
-        toast({
-          title: "All combinations completed!",
-          description: "You've seen all possible token combinations.",
-        })
+        const randomPair = getRandomPair()
         
-        router.push('/history')
+        if (randomPair === null) {
+          // If both smart and random selection fail, show a message
+          toast({
+            title: "All combinations completed!",
+            description: "You've seen all possible token combinations.",
+          })
+          
+          // Redirect to history page
+          router.push('/history')
+        } else {
+          setCryptoPair(randomPair)
+          
+          toast({
+            title: "New random pair!",
+            description: "Using random selection as all smart pairs are exhausted.",
+          })
+        }
       } else {
         setCryptoPair(nextPair)
       }
@@ -146,7 +171,7 @@ export default function Home() {
       setExplanation("")
       setIsSubmitting(false)
       setEditingId(null)
-    }, 1000)
+    }, 100) // Reduced from 1000ms to 100ms for faster submission
   }
 
   const handleCancel = () => {
@@ -157,18 +182,32 @@ export default function Home() {
     // Get next pair using smart selection
     const nextPair = getSmartPair()
     
-    // If all pairs have been exhausted, show a message and redirect to history
+    // If all pairs have been exhausted, try random pair
     if (nextPair === null) {
-      toast({
-        title: "All combinations completed!",
-        description: "You've seen all possible token combinations.",
-      })
+      const randomPair = getRandomPair()
       
-      router.push('/history')
-      return
+      if (randomPair === null) {
+        // If both smart and random selection fail, show a message
+        toast({
+          title: "All combinations completed!",
+          description: "You've seen all possible token combinations.",
+        })
+        
+        // Redirect to history page
+        router.push('/history')
+        return
+      } else {
+        setCryptoPair(randomPair)
+        
+        toast({
+          title: "New random pair!",
+          description: "Using random selection as all smart pairs are exhausted.",
+        })
+      }
+    } else {
+      setCryptoPair(nextPair)
     }
     
-    setCryptoPair(nextPair)
     setAllocation([50])
     setExplanation("")
     router.push("/")
@@ -177,6 +216,16 @@ export default function Home() {
   const handleRandomize = () => {
     // Get a completely random pair
     const randomPair = getRandomPair()
+    
+    if (randomPair === null) {
+      toast({
+        title: "All combinations completed!",
+        description: "You've seen all possible token combinations.",
+        variant: "destructive"
+      })
+      return
+    }
+    
     setCryptoPair(randomPair)
     setAllocation([50]) // Reset allocation to 50/50
     
@@ -185,6 +234,46 @@ export default function Home() {
       description: `New pair: ${randomPair[0].name} vs ${randomPair[1].name}`,
     })
   }
+
+  // Handle denying a token
+  const handleDenyToken = (id: string) => {
+    toggleDenyToken(id);
+    
+    // Get a new pair after denying
+    const nextPair = getSmartPair();
+    
+    // If all pairs have been exhausted, try random pair
+    if (nextPair === null) {
+      const randomPair = getRandomPair();
+      
+      if (randomPair === null) {
+        // If both smart and random selection fail, show a message
+        toast({
+          title: "All combinations completed!",
+          description: "You've seen all possible token combinations.",
+        });
+        
+        // Redirect to history page
+        router.push('/history');
+      } else {
+        setCryptoPair(randomPair);
+        setAllocation([50]); // Reset allocation to 50/50
+        
+        toast({
+          title: "Token denied",
+          description: "This token won't appear in future selections. Using random selection.",
+        });
+      }
+    } else {
+      setCryptoPair(nextPair);
+      setAllocation([50]); // Reset allocation to 50/50
+      
+      toast({
+          title: "Token denied",
+          description: "This token won't appear in future selections.",
+      });
+    }
+  };
 
   return (
     <main className="container max-w-4xl mx-auto py-8 px-4">
@@ -203,33 +292,20 @@ export default function Home() {
         explanation={explanation}
         onAllocationChange={setAllocation}
         onExplanationChange={setExplanation}
+        onDenylistToken={handleDenyToken}
+        onSubmit={handleSubmit}
+        onRandomize={!editingId ? handleRandomize : undefined}
+        isSubmitting={isSubmitting}
+        isEditing={!!editingId}
       />
 
-      <div className="flex flex-col gap-4 mt-8">
-        <Button 
-          onClick={handleSubmit} 
-          disabled={isSubmitting} 
-          className={editingId ? "flex-1" : "w-full"} 
-          size="lg"
-        >
-          {isSubmitting ? "Submitting..." : editingId ? "Update Selection" : "Save & Continue"}
-          {!isSubmitting && !editingId && <ArrowRight className="ml-2 h-5 w-5" />}
-        </Button>
-
-        <div className="flex gap-4">
-          {editingId && (
-            <Button variant="outline" onClick={handleCancel} className="flex-1">
-              Cancel
-            </Button>
-          )}
-          
-          {!editingId && (
-            <Button variant="outline" onClick={handleRandomize} className="w-full">
-              Randomize
-            </Button>
-          )}
+      {editingId && (
+        <div className="flex justify-center mt-4">
+          <Button variant="outline" onClick={handleCancel} className="w-full max-w-xs">
+            Cancel
+          </Button>
         </div>
-      </div>
+      )}
     </main>
   )
 }
