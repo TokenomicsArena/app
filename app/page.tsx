@@ -19,6 +19,15 @@ export default function Home() {
   
   // Initialize the token pair on the client side only
   useEffect(() => {
+    // Check if we're editing an existing item first
+    const editId = searchParams.get("edit")
+    
+    if (editId) {
+      // If we're editing, the other useEffect will handle loading the pair
+      return;
+    }
+    
+    // Only load a random pair if we're not editing
     // Try to get a smart pair first
     const smartPair = getSmartPair()
     
@@ -42,7 +51,7 @@ export default function Home() {
     } else {
       setCryptoPair(smartPair)
     }
-  }, [router])
+  }, [router, searchParams])
   const [allocation, setAllocation] = useState([50])
   const [explanation, setExplanation] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -91,18 +100,27 @@ export default function Home() {
     
     setIsSubmitting(true)
 
-    // Determine if we need to swap tokens based on allocation
-    // If allocation > 50%, the second token has higher allocation
-    // and should become the first token
-    let finalCrypto1 = cryptoPair[0]
-    let finalCrypto2 = cryptoPair[1]
-    let crypto1AllocationPercent = 100 - allocation[0]
+    let finalCrypto1, finalCrypto2, crypto1AllocationPercent;
+    
+    if (editingId) {
+      // When editing, preserve the original token order
+      finalCrypto1 = cryptoPair[0];
+      finalCrypto2 = cryptoPair[1];
+      crypto1AllocationPercent = 100 - allocation[0];
+    } else {
+      // For new submissions, determine if we need to swap tokens based on allocation
+      // If allocation > 50%, the second token has higher allocation
+      // and should become the first token
+      finalCrypto1 = cryptoPair[0];
+      finalCrypto2 = cryptoPair[1];
+      crypto1AllocationPercent = 100 - allocation[0];
 
-    // If second token has higher allocation, swap them
-    if (allocation[0] > 50) {
-      finalCrypto1 = cryptoPair[1]
-      finalCrypto2 = cryptoPair[0]
-      crypto1AllocationPercent = allocation[0]
+      // If second token has higher allocation, swap them
+      if (allocation[0] > 50) {
+        finalCrypto1 = cryptoPair[1];
+        finalCrypto2 = cryptoPair[0];
+        crypto1AllocationPercent = allocation[0];
+      }
     }
 
     // Create history item with potentially swapped tokens

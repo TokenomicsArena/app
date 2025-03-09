@@ -32,6 +32,16 @@ export default function HistoryPage() {
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
   const [restoreData, setRestoreData] = useState<{ history: HistoryItem[] } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  
+  // Set loading to false after initial render
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 100) // Short delay to ensure store is hydrated
+    
+    return () => clearTimeout(timer)
+  }, [])
   
   // Handle scrolling to the anchor ID when the page loads
   useEffect(() => {
@@ -279,7 +289,11 @@ export default function HistoryPage() {
           </div>
         </div>
 
-        {history.length === 0 ? (
+      {isLoading ? (
+        <div className="text-center py-12 border rounded-lg">
+          <p className="text-muted-foreground mb-4">Loading...</p>
+        </div>
+      ) : history.length === 0 ? (
           <div className="text-center py-12 border rounded-lg">
             <p className="text-muted-foreground mb-4">You haven't made any selections yet.</p>
             <Button onClick={() => router.push("/")}>Go to Arena</Button>

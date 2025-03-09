@@ -19,14 +19,11 @@ At Tokenomics Arena, we prioritize your privacy and transparency. We've engineer
         
         <ul className="list-disc pl-6 space-y-4 text-muted-foreground">
           <li>
-            <span className="text-foreground font-semibold">This website stores data exclusively on your device — none of your choices or preferences are transfered to any servers</span>, unless you explicitly:
-            <ul className="list-disc pl-6 mt-2 space-y-4">
-              <li>Share your email address to register to our newsletter, in which case we take all possible measures to protect your email, which is not linked to your activity on this site.</li>
-            </ul>
+            <span className="text-foreground font-semibold">This website stores data exclusively on your device — none of your choices or preferences are transfered to any servers</span>.
           </li>
 
           <li>
-            This website is open source and automatically deployed using <Link href="https://vercel.com">vercel.com</Link>. You can examine it here: <Link href="https://github.com/eordano/tokenomics">eordano/tokenomics</Link>.
+            This website is open source and automatically deployed using <Link href="https://vercel.com">vercel.com</Link>. You can examine it here: <Link href="https://github.com/TokenomicsArena/app">TokenomicsArena/app</Link>.
           </li>
           
           <li>
@@ -75,11 +72,11 @@ At Tokenomics Arena, we prioritize your privacy and transparency. We've engineer
             <ExternalLink className="h-4 w-4 mx-1 inline" />
             the server running this website (and all other websites you visit)
           </a> 
-          &nbsp;receives your IP address, browser, operating system, and other identifiable details with each visit. We partially store this data as logs for spam and bot prevention, retaining it for up to one year before automatic deletion. You can mask this information (e.g., with a VPN), and we encourage you to do so for maximum privacy.
+          &nbsp;receives your IP address, browser, operating system, and other identifiable details with each visit. You can mask this information (e.g., with a VPN), and we encourage you to do so for maximum privacy.
         </p>
           
         <p className="mb-2 mt-4 text-muted-foreground">
-          We only log your Autonomous System information (i.e., your ISP) and User Agent for up to one year for security and spam prevention, after which they are automatically deleted. All other request headers are discarded.
+          As this website is hosted on Vercel's infrastructure, Vercel may collect and retain certain server logs and technical information as part of their standard operations. These logs may include IP addresses, request timestamps, and other technical data necessary for the provision of their services. We have limited control over Vercel's data retention practices. For more information, please refer to Vercel's privacy policy.
         </p>
       </div>
       
@@ -98,38 +95,15 @@ At Tokenomics Arena, we prioritize your privacy and transparency. We've engineer
       </div>
 
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4" id="email-subscriptions">Email Subscriptions</h2>
-        <p className="text-muted-foreground mb-4">
-          If you choose to subscribe to our newsletter, please be aware of the following:
-        </p>
-        <ul className="list-disc pl-6 space-y-4 text-muted-foreground">
-          <li>
-            We use Mailchimp for email subscriptions, which complies with GDPR and industry security standards. However, we cannot control their internal logging practices beyond our agreement with them. Your email remains unlinked to your website activity.
-          </li>
-          <li>
-            Our emails include tracking pixels that can detect when you open an email. This is standard industry practice and allows us to measure how good our email campaigns are. You can opt out of this by configuring your email client to block external images, preventing this form of tracking.
-          </li>
-          <li>
-            We commit to sending no more than two emails per week. Typically, you'll only receive about one email per month with important updates.
-          </li>
-          <li>
-            While we don't control Mailchimp's servers, they maintain compliance with GDPR and similar privacy regulations.
-          </li>
-          <li>
-            You can unsubscribe at any time using the link included in every email. We don't maintain separate backups of email lists outside of the Mailchimp platform. We will never share the email address you provide us with any other third party other than Mailchimp for any purpose.
-          </li>
-        </ul>
-      </div>
-      <div className="mb-8">
         <h2 className="text-2xl font-semibold mb-4">Legal Compliance</h2>
         <p className="text-muted-foreground mb-4">
-          For users in the European Union or other regulated regions, this architecture was built to comply by default with applicable data protection laws. Our logging practices are designed for security purposes as a legitimate interest.
+          For users in the European Union or other regulated regions, this architecture was built to comply by default with applicable data protection laws to the extent possible.
           This design ensures that your privacy rights are respected following the spirit of the GDPR and other laws. If you believe we are missing something; please contact us at <a href="mailto:privacy@tokenomics-arena.com">privacy@tokenomics-arena.com</a>.
         </p>
       </div>
       
       <p className="text-sm text-muted-foreground mt-12">
-        Last updated: March 8, 2025
+        Last updated: March 9, 2025
       </p>
     </main>
   )

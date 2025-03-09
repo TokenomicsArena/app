@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { RefreshCw, Settings, TrendingUp, TrendingDown } from "lucide-react"
@@ -8,7 +8,6 @@ import { RefreshCw, Settings, TrendingUp, TrendingDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
@@ -26,44 +25,17 @@ export default function PortfolioPage() {
   const [showSettings, setShowSettings] = useState(false)
   const [isCalculating, setIsCalculating] = useState(false)
   const [recalculateKey, setRecalculateKey] = useState(0) // Used to force recalculation
-
-  // Function to get token comparison data from history
-  const getTokenComparisonData = (tokenId: string) => {
-    // Find all history items where this token appears
-    const tokenHistory = history.filter(
-      item => item.crypto1.id === tokenId || item.crypto2.id === tokenId
-    )
-
-    // Calculate win rate (percentage of times this token was preferred)
-    let wins = 0
-    let totalComparisons = tokenHistory.length
-    
-    tokenHistory.forEach(item => {
-      if (item.crypto1.id === tokenId) {
-        // If this token is crypto1, check if its allocation is > 50%
-        if (item.crypto1AllocationPercent > 50) wins++
-      } else {
-        // If this token is crypto2, check if crypto1's allocation is < 50%
-        if (item.crypto1AllocationPercent < 50) wins++
-      }
-    })
-
-    const winRate = totalComparisons > 0 ? (wins / totalComparisons) * 100 : 0
-
-    // Get the most recent comparison
-    const sortedHistory = [...tokenHistory].sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    )
-    
-    const latestComparison = sortedHistory[0]
-
-    return {
-      winRate,
-      totalComparisons,
-      latestComparison
-    }
-  }
+  const [isLoading, setIsLoading] = useState(true)
   
+  // Set loading to false after initial render
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 100) // Short delay to ensure store is hydrated
+    
+    return () => clearTimeout(timer)
+  }, [])
+
   // Function to render badges for a token
   const renderTokenBadges = (tokenId: string) => {
     if (history.length === 0) return null
@@ -363,7 +335,7 @@ export default function PortfolioPage() {
         </CollapsibleContent>
       </Collapsible>
 
-      {history === undefined ? (
+      {isLoading ? (
         <div className="text-center py-12 border rounded-lg">
           <p className="text-muted-foreground mb-4">Loading...</p>
         </div>

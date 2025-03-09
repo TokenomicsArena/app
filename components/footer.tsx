@@ -64,7 +64,7 @@ export default function Footer() {
                 Bluesky
               </a>
               <a
-                href="https://github.com/eordano/tokenomics"
+                href="https://github.com/TokenomicsArena/app"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
