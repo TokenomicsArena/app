@@ -8,8 +8,8 @@ import type {
   ToastProps,
 } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_LIMIT = 3
+const TOAST_REMOVE_DELAY = 1000
 
 type ToasterToast = ToastProps & {
   id: string
@@ -58,18 +58,22 @@ interface State {
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
-const addToRemoveQueue = (toastId: string) => {
+const addToRemoveQueue = (toastId: string, index = 0) => {
   if (toastTimeouts.has(toastId)) {
     return
   }
 
+  // Add a small staggered delay for each toast to prevent them all disappearing at once
+  // when multiple toasts are shown
+  const staggeredDelay = TOAST_REMOVE_DELAY + (index * 100)
+  
   const timeout = setTimeout(() => {
     toastTimeouts.delete(toastId)
     dispatch({
       type: "REMOVE_TOAST",
       toastId: toastId,
     })
-  }, TOAST_REMOVE_DELAY)
+  }, staggeredDelay)
 
   toastTimeouts.set(toastId, timeout)
 }
@@ -96,10 +100,15 @@ export const reducer = (state: State, action: Action): State => {
       // ! Side effects ! - This could be extracted into a dismissToast() action,
       // but I'll keep it here for simplicity
       if (toastId) {
-        addToRemoveQueue(toastId)
+        // Find the index of the toast to dismiss
+        const toastIndex = state.toasts.findIndex(t => t.id === toastId);
+        if (toastIndex !== -1) {
+          addToRemoveQueue(toastId, toastIndex)
+        }
       } else {
-        state.toasts.forEach((toast) => {
-          addToRemoveQueue(toast.id)
+        // Dismiss all toasts with staggered delays
+        state.toasts.forEach((toast, index) => {
+          addToRemoveQueue(toast.id, index)
         })
       }
 
@@ -152,17 +161,42 @@ function toast({ ...props }: Toast) {
     })
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
 
-  dispatch({
-    type: "ADD_TOAST",
-    toast: {
-      ...props,
-      id,
-      open: true,
-      onOpenChange: (open) => {
-        if (!open) dismiss()
+  // Get current number of toasts to determine if we should stagger the appearance
+  const currentToasts = memoryState.toasts.length;
+  
+  // If there are already toasts showing, add a small delay before showing the new one
+  // This creates a staggered appearance effect when multiple toasts are triggered in succession
+  if (currentToasts > 0) {
+    // Small delay based on the number of existing toasts
+    const staggerDelay = 50 * currentToasts;
+    
+    setTimeout(() => {
+      dispatch({
+        type: "ADD_TOAST",
+        toast: {
+          ...props,
+          id,
+          open: true,
+          onOpenChange: (open) => {
+            if (!open) dismiss()
+          },
+        },
+      })
+    }, staggerDelay);
+  } else {
+    // If no toasts are showing, add it immediately
+    dispatch({
+      type: "ADD_TOAST",
+      toast: {
+        ...props,
+        id,
+        open: true,
+        onOpenChange: (open) => {
+          if (!open) dismiss()
+        },
       },
-    },
-  })
+    })
+  }
 
   return {
     id: id,

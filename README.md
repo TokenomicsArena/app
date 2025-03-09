@@ -1,21 +1,17 @@
 # Tokenomics Arena
 
-A web application that helps users discover their ideal cryptocurrency portfolio allocation through a series of intuitive pairwise comparisons.
+A web application that helps users build a cryptocurrency portfolio allocation through a series of simple pairwise comparisons.
 
 ## Overview
 
-Tokenomics Arena simplifies the complex process of building a cryptocurrency portfolio by breaking down decisions into simple choices between two options at a time. Over time, user preferences emerge into a comprehensive portfolio allocation that reflects their unique investment philosophy and risk tolerance.
+Tokenomics Arena simplifies the complex process of building a cryptocurrency portfolio by breaking down decisions into simple choices between two options at a time. Over time, user preferences emerge into a comprehensive portfolio allocation that reflects their investment philosophy and risk tolerance.
 
-![Tokenomics Arena](public/placeholder.svg)
+![Tokenomics Arena](public/screenshot.png)
 
 ## Features
 
-- **Pairwise Comparisons**: Make simple allocation decisions between pairs of cryptocurrencies
-- **History Tracking**: Review and edit your past allocation decisions
-- **Portfolio Generation**: Automatically generate a suggested portfolio based on your preferences
-- **Customizable Algorithm**: Fine-tune the portfolio generation algorithm parameters
-- **Responsive Design**: Works seamlessly on desktop and mobile devices
-- **Dark/Light Mode**: Choose your preferred theme or use system settings
+- **Pairwise Comparisons**: Make allocation decisions between pairs of cryptocurrencies
+- **Portfolio Generation**: Automatically generate a suggested portfolio based on preferences
 
 ## Tech Stack
 

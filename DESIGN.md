@@ -2,7 +2,7 @@
 
 ## Overview
 
-Tokenomics Arena is a web application that helps users discover their ideal cryptocurrency portfolio allocation through intuitive pairwise comparisons. Instead of overwhelming users with complex charts and technical analysis, the platform breaks down the decision-making process into simple choices between two options at a time.
+Tokenomics Arena is a web application that helps users build a cryptocurrency portfolio allocation through simple pairwise comparisons. Instead of overwhelming users with complex charts and technical analysis, the platform breaks down the decision-making process into simple choices between two options at a time.
 
 ## Core Features
 
@@ -25,7 +25,6 @@ Tokenomics Arena is a web application that helps users discover their ideal cryp
 
 ### 3. Portfolio
 - Aggregated view of allocation preferences
-- Portfolio value calculator (based on $10,000 investment)
 - Asset allocation visualization with progress bars
 - Ranked token list based on preferences
 - Customizable algorithm parameters:
@@ -37,7 +36,6 @@ Tokenomics Arena is a web application that helps users discover their ideal cryp
 ### 4. About
 - Mission statement
 - How-it-works guide
-- Newsletter subscription
 - Social media connections
 
 ## Design Decisions
@@ -58,7 +56,6 @@ Tokenomics Arena is a web application that helps users discover their ideal cryp
 
 #### Arena Page
 - Card-based layout for cryptocurrency pairs
-- Large, prominent slider for intuitive interaction
 - Color coding (blue/red) for visual distinction
 - Clear call-to-action buttons
 - Immediate feedback on allocation changes
@@ -93,7 +90,7 @@ Tokenomics Arena is a web application that helps users discover their ideal cryp
 - Progress bars for allocation visualization
 - Detailed breakdown table
 - Real-time calculations based on history
-- Follows an algorithm iterating towards the preferences of the userpx
+- Follows an algorithm iterating towards the preferences of the user
 
 ```
 // Initialize
@@ -179,11 +176,13 @@ while (max_change > convergence_threshold && iterations < max_iterations):
 
 ## Smart Pair Selection
 
-The application uses a sophisticated algorithm to determine which cryptocurrency pairs to present to the user. A fundamental rule is that **the same pair of cryptocurrencies is never shown twice** - once users have compared a specific pair, they will never see that exact pair again.
+The application uses an algorithm to determine which cryptocurrency pairs to present to the user. A fundamental rule is that **the same pair of cryptocurrencies is never shown twice** - once users have compared a specific pair, they will never see that exact pair again.
+
+This algorithm could use some serious tweaking.
 
 ### Pair Exhaustion Handling
 
-- When all possible unique pairs have been compared, the application notifies the user that all combinations have been completed
+- When all possible unique pairs have been compared, the application notifies the user that all combinations have been completed (hardly will ever happen)
 - The user is then redirected to the History page to review their selections
 - This ensures users always make fresh comparisons and prevents redundant decision-making
 

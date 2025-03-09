@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: 'https://tokenomics-arena.com',
     title: 'Tokenomics Arena',
-    description: 'Discover your ideal crypto portfolio through pairwise comparisons',
+    description: 'Build a tailored portfolio through pairwise comparisons',
     siteName: 'Tokenomics Arena',
     images: [
       {
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Tokenomics Arena',
-    description: 'Discover your ideal crypto portfolio through pairwise comparisons',
+    description: 'Build a tailored portfolio through pairwise comparisons',
     creator: '@TokenomicsArena',
     images: ['/og-image.png']
   }

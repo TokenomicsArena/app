@@ -16,14 +16,16 @@ export default function AboutPage() {
       <noscript>
         <p className="text-xl text-red-500 mb-8">This app requires JavaScript to function. Our JavaScript code contains no tracking functionality and is essential for the core features of this application.</p>
       </noscript>
-      <p className="text-muted-foreground mb-8">Discover your ideal crypto portfolio through pairwise comparisons</p>
+      <p className="text-muted-foreground mb-8">
+    Build a tailored portfolio through simple comparisons
+    </p>
 
       <div className="grid md:grid-cols-2 gap-8 mb-12">
         <div>
-          <h2 className="text-2xl font-semibold mb-4">Our Mission</h2>
+          <h2 className="text-2xl font-semibold mb-4">What is this?</h2>
           <p className="text-muted-foreground mb-4">
-            Tokenomics Arena helps you discover your ideal cryptocurrency portfolio allocation through a series of
-            intuitive pairwise comparisons.
+            Tokenomics Arena helps you build a cryptocurrency portfolio allocation through a series of
+            simple pairwise comparisons.
           </p>
           <p className="text-muted-foreground mb-4">
             Rather than overwhelming you with complex charts and technical analysis, we break down the decision-making

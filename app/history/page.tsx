@@ -70,11 +70,6 @@ export default function HistoryPage() {
   const handleEdit = (id: string) => {
     // Navigate to the arena page with the item ID as a query parameter
     router.push(`/?edit=${id}`)
-
-    toast({
-      title: "Editing selection",
-      description: "Loading your previous selection for editing",
-    })
   }
 
   const handleDeleteClick = (id: string) => {
@@ -254,7 +249,7 @@ export default function HistoryPage() {
     <TooltipProvider>
       <main className="container max-w-6xl mx-auto py-8 px-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <h1 className="text-3xl font-bold">Selection History</h1>
+          <h1 className="text-3xl font-bold">History</h1>
           
           <div className="flex gap-2 w-full sm:w-auto">
             <Button

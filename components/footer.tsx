@@ -18,7 +18,7 @@ export default function Footer() {
               <span className="font-bold text-lg">Tokenomics Arena</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Discover your ideal crypto portfolio through pairwise comparisons.
+              Build a tailored portfolio through simple comparisons.
             </p>
           </div>
 

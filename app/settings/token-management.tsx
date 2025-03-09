@@ -122,8 +122,8 @@ export default function TokenManagement({
     const token = tokens.find(t => t.id === tokenId);
     
     toast({
-      title: isDenied ? "Token denied" : "Token allowed",
-      description: `${token?.name} has been ${isDenied ? "added to" : "removed from"} the denylist`,
+      title: !isDenied ? "Token denied" : "Token allowed",
+      description: `${token?.name} has been ${!isDenied ? "added to" : "removed from"} the denylist`,
     });
   }
   

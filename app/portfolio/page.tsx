@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { RefreshCw, Settings, TrendingUp, TrendingDown } from "lucide-react"
+import { RefreshCw, Settings, Share2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,10 +12,13 @@ import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useStore, getNormalizedPairKey } from "@/lib/store"
+import { useStore, getNormalizedPairKey, defaultCryptocurrencies } from "@/lib/store"
+import { toast } from "@/components/ui/use-toast"
+import { useRouter } from "next/navigation"
 
 export default function PortfolioPage() {
   const { history } = useStore()
+  const router = useRouter()
 
   // Algorithm parameters with defaults
   const [learningRate, setLearningRate] = useState(0.9)
@@ -82,15 +85,19 @@ export default function PortfolioPage() {
                 <TooltipTrigger asChild>
                   <Link href={`/history#${comparison.id}`}>
                     <Badge 
-                      variant={isEqual ? "outline" : (isPreferred ? "default" : "destructive")} 
-                      className="cursor-pointer text-[10px] px-1.5 py-0"
+                      variant="outline"
+                      className={`cursor-pointer text-[9px] px-1 py-0 opacity-70 hover:opacity-100 transition-opacity ${
+                        isEqual ? "text-gray-500" : 
+                        isPreferred ? "text-green-600" : 
+                        "text-red-600"
+                      }`}
                     >
                       {isEqual ? (
-                        'Equals '
+                        '= '
                       ) : isPreferred ? (
-                        'Beats '
+                        '> '
                       ) : (
-                        'Worse than '
+                        '< '
                       )}
                       {otherToken.symbol}
                     </Badge>
@@ -241,19 +248,82 @@ export default function PortfolioPage() {
     setRecalculateKey((prev) => prev + 1)
   }
 
+  // Generate share URL with portfolio data and copy to clipboard
+  const handleShare = () => {
+    if (portfolio.length === 0) {
+      toast({
+        title: "Nothing to share",
+        description: "Your portfolio is empty",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Create URL parameters
+    const params = new URLSearchParams()
+    
+    // Get top 10 tokens or all if less than 10
+    const topTokens = portfolio.filter(item => item.percentage > 0).slice(0, 10)
+    
+    // Add tokens to URL parameters
+    topTokens.forEach((item, index) => {
+      const tokenNumber = index + 1
+      params.set(`t${tokenNumber}`, item.token.symbol)
+      params.set(`s${tokenNumber}`, item.percentage.toFixed(2))
+      
+      // For custom tokens or tokens not in the default list, add the name
+      const isDefaultToken = defaultCryptocurrencies.some(t => t.symbol === item.token.symbol)
+      if (!isDefaultToken) {
+        // Use the token symbol as the parameter name for the custom name
+        params.set(item.token.symbol, item.token.name)
+      }
+    })
+    
+    // Generate full share URL
+    const shareUrl = `${window.location.origin}/share?${params.toString()}`
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(shareUrl)
+      .then(() => {
+        toast({
+          title: "URL copied!",
+          description: "Share link has been copied to clipboard",
+        })
+      })
+      .catch(err => {
+        toast({
+          title: "Failed to copy",
+          description: "Could not copy URL to clipboard",
+          variant: "destructive"
+        })
+      })
+  }
+
   return (
     <main className="container max-w-4xl mx-auto py-8 px-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h1 className="text-3xl font-bold">Suggested Portfolio Allocation</h1>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowSettings(!showSettings)}
-          className="flex items-center gap-2 w-full sm:w-auto justify-center"
-        >
-          <Settings className="h-4 w-4" />
-          <span>Algorithm Settings</span>
-        </Button>
+        <h1 className="text-3xl font-bold">Portfolio</h1>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSettings(!showSettings)}
+            className="flex items-center gap-2 justify-center"
+          >
+            <Settings className="h-4 w-4" />
+            <span>Algorithm Settings</span>
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleShare}
+            className="flex items-center gap-2 justify-center"
+            disabled={portfolio.length === 0 || isLoading}
+          >
+            <Share2 className="h-4 w-4" />
+            <span>Share</span>
+          </Button>
+        </div>
       </div>
 
       <Collapsible open={showSettings} onOpenChange={setShowSettings} className="mb-8">

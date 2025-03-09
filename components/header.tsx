@@ -2,7 +2,8 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Coins, Menu, X } from "lucide-react"
+import { Menu, X } from "lucide-react"
+import Image from "next/image"
 import { useState, useEffect } from "react"
 import { useIsMobile } from "@/hooks/use-mobile"
 
@@ -40,7 +41,7 @@ export default function Header() {
       <div className="container max-w-6xl mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <Coins className="h-6 w-6 text-primary" />
+            <Image src="/logo.svg" alt="Tokenomics Arena Logo" width={24} height={24} />
             <span className="font-bold text-xl">Tokenomics Arena</span>
           </Link>
 

@@ -6,8 +6,8 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
 import TokenSelection from "@/components/token-selection"
-import { Cryptocurrency, getRandomPair, getSmartPair, useStore } from "@/lib/store"
-import Link from "next/link"
+import { Cryptocurrency, getSmartPair, useStore } from "@/lib/store"
+import AboutPage from "./about/page"
 
 export default function Home() {
   const { history, addToHistory, updateHistory, toggleDenyToken } = useStore()
@@ -17,46 +17,24 @@ export default function Home() {
   // Initialize with null to prevent hydration issues
   const [cryptoPair, setCryptoPair] = useState<[Cryptocurrency, Cryptocurrency] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  
+
   // Initialize the token pair on the client side only
   useEffect(() => {
     // Check if we're editing an existing item first
     const editId = searchParams.get("edit")
-    
+
     if (editId) {
       // If we're editing, the other useEffect will handle loading the pair
       setIsLoading(false)
       return;
     }
-    
+
     // Define an async function to load the pair
     const loadPair = async () => {
       setIsLoading(true)
       try {
-        // Only load a random pair if we're not editing
-        // Try to get a smart pair first
         const smartPair = await getSmartPair()
-        
-        // If all pairs have been exhausted or it's the first load, try random pair
-        if (smartPair === null) {
-          const randomPair = await getRandomPair()
-          
-          if (randomPair === null) {
-            // If both smart and random selection fail, show a message
-            toast({
-              title: "All combinations completed!",
-              description: "You've seen all possible token combinations.",
-              variant: "destructive"
-            })
-            
-            // Redirect to history page
-            router.push('/history')
-          } else {
-            setCryptoPair(randomPair)
-          }
-        } else {
-          setCryptoPair(smartPair)
-        }
+        setCryptoPair(smartPair)
       } catch (error) {
         console.error("Error loading token pair:", error)
         toast({
@@ -68,7 +46,7 @@ export default function Home() {
         setIsLoading(false)
       }
     }
-    
+
     loadPair()
   }, [router, searchParams])
   const [allocation, setAllocation] = useState([50])
@@ -84,7 +62,7 @@ export default function Home() {
     const editId = searchParams.get("edit")
 
     // Only process if we have an edit ID and haven't processed it yet
-    if (editId && !editProcessed.current) {
+    if (editId && !editProcessed.current && !isSubmitting) {
       const itemToEdit = history.find((item) => item.id === editId)
 
       if (itemToEdit) {
@@ -116,11 +94,11 @@ export default function Home() {
   const handleSubmit = async () => {
     // Don't proceed if cryptoPair is null
     if (!cryptoPair) return
-    
+
     setIsSubmitting(true)
 
     let finalCrypto1, finalCrypto2, crypto1AllocationPercent;
-    
+
     if (editingId) {
       // When editing, preserve the original token order
       finalCrypto1 = cryptoPair[0];
@@ -170,40 +148,30 @@ export default function Home() {
         // Add new item
         addToHistory(historyItem)
 
-        toast({
-          title: "Choice submitted!",
-          description: `You allocated ${crypto1AllocationPercent}% to ${finalCrypto1.name} and ${100 - crypto1AllocationPercent}% to ${finalCrypto2.name}`,
-        })
+        // Check if we've reached a multiple of 10 selections
+        if (history.length > 0 && history.length % 10 === 0) {
+          toast({
+            title: "Portfolio Suggestion",
+            description: (
+              <div>
+                You've made {history.length} selections!
+                Would you like to
+                <a href="/portfolio" className="ml-1 text-primary hover:underline">
+                  check out how your
+                  current portfolio
+                </a> &nbsp;
+
+                is looking like?
+              </div>
+            ),
+            duration: 3000,
+          })
+        }
       }
 
       // Reset for next pair using the smart selection
       const nextPair = await getSmartPair()
-      
-      // If all pairs have been exhausted, try random pair
-      if (nextPair === null) {
-        const randomPair = await getRandomPair()
-        
-        if (randomPair === null) {
-          // If both smart and random selection fail, show a message
-          toast({
-            title: "All combinations completed!",
-            description: "You've seen all possible token combinations.",
-          })
-          
-          // Redirect to history page
-          router.push('/history')
-        } else {
-          setCryptoPair(randomPair)
-          
-          toast({
-            title: "New random pair!",
-            description: "Using random selection as all smart pairs are exhausted.",
-          })
-        }
-      } else {
-        setCryptoPair(nextPair)
-      }
-      
+      setCryptoPair(nextPair)
       setAllocation([50])
       setExplanation("")
       setEditingId(null)
@@ -223,38 +191,13 @@ export default function Home() {
     // Reset the processed flag when canceling
     editProcessed.current = false
     setEditingId(null)
-    
+
     setIsLoading(true)
     try {
       // Get next pair using smart selection
       const nextPair = await getSmartPair()
-      
-      // If all pairs have been exhausted, try random pair
-      if (nextPair === null) {
-        const randomPair = await getRandomPair()
-        
-        if (randomPair === null) {
-          // If both smart and random selection fail, show a message
-          toast({
-            title: "All combinations completed!",
-            description: "You've seen all possible token combinations.",
-          })
-          
-          // Redirect to history page
-          router.push('/history')
-          return
-        } else {
-          setCryptoPair(randomPair)
-          
-          toast({
-            title: "New random pair!",
-            description: "Using random selection as all smart pairs are exhausted.",
-          })
-        }
-      } else {
-        setCryptoPair(nextPair)
-      }
-      
+      setCryptoPair(nextPair)
+
       setAllocation([50])
       setExplanation("")
       router.push("/")
@@ -274,8 +217,8 @@ export default function Home() {
     setIsLoading(true)
     try {
       // Get a completely random pair
-      const randomPair = await getRandomPair()
-      
+      const randomPair = await getSmartPair()
+
       if (randomPair === null) {
         toast({
           title: "All combinations completed!",
@@ -284,10 +227,10 @@ export default function Home() {
         })
         return
       }
-      
+
       setCryptoPair(randomPair)
       setAllocation([50]) // Reset allocation to 50/50
-      
+
       toast({
         title: "Randomized!",
         description: `New pair: ${randomPair[0].name} vs ${randomPair[1].name}`,
@@ -307,42 +250,22 @@ export default function Home() {
   // Handle denying a token
   const handleDenyToken = async (id: string) => {
     toggleDenyToken(id);
-    
+
     setIsLoading(true)
     try {
       // Get a new pair after denying
       const nextPair = await getSmartPair();
-      
-      // If all pairs have been exhausted, try random pair
       if (nextPair === null) {
-        const randomPair = await getRandomPair();
-        
-        if (randomPair === null) {
-          // If both smart and random selection fail, show a message
-          toast({
-            title: "All combinations completed!",
-            description: "You've seen all possible token combinations.",
-          });
-          
-          // Redirect to history page
-          router.push('/history');
-        } else {
-          setCryptoPair(randomPair);
-          setAllocation([50]); // Reset allocation to 50/50
-          
-          toast({
-            title: "Token denied",
-            description: "This token won't appear in future selections. Using random selection.",
-          });
-        }
+        // If both smart and random selection fail, show a message
+        toast({
+          title: "All combinations completed!",
+          description: "You've seen all possible token combinations.",
+        });
+        // Redirect to history page
+        router.push('/history');
       } else {
         setCryptoPair(nextPair);
         setAllocation([50]); // Reset allocation to 50/50
-        
-        toast({
-            title: "Token denied",
-            description: "This token won't appear in future selections.",
-        });
       }
     } catch (error) {
       console.error("Error denying token:", error)
@@ -356,37 +279,34 @@ export default function Home() {
     }
   };
 
-  return (
-    <main className="container max-w-4xl mx-auto py-8 px-4">
-      <noscript>
-        <div className="py-8">
-          <h2 className="text-2xl font-bold mb-4">JavaScript Required</h2>
-          <p className="mb-4">This application requires JavaScript to function properly.</p>
-          <p>Please enable JavaScript in your browser settings and reload the page.</p>
-        </div>
-      </noscript>
-      <h1 className="text-3xl font-bold text-center mb-8">{editingId ? "Edit Your Selection" : "Tokenomics Arena"}</h1>
+  return !cryptoPair ? <AboutPage /> : <main className="container max-w-4xl mx-auto py-8 px-4">
+    <noscript>
+      <div className="py-8">
+        <h2 className="text-2xl font-bold mb-4">JavaScript Required</h2>
+        <p className="mb-4">This application requires JavaScript to function properly.</p>
+        <p>Please enable JavaScript in your browser settings and reload the page.</p>
+      </div>
+    </noscript>
+    <h1 className="text-3xl font-bold text-center mb-8">{editingId ? "Edit Your Selection" : "Tokenomics Arena"}</h1>
+    <TokenSelection
+      cryptoPair={cryptoPair}
+      allocation={allocation}
+      explanation={explanation}
+      onAllocationChange={setAllocation}
+      onExplanationChange={setExplanation}
+      onDenylistToken={handleDenyToken}
+      onSubmit={handleSubmit}
+      onRandomize={!editingId ? handleRandomize : undefined}
+      isSubmitting={isSubmitting}
+      isEditing={!!editingId}
+    />
 
-      <TokenSelection
-        cryptoPair={cryptoPair}
-        allocation={allocation}
-        explanation={explanation}
-        onAllocationChange={setAllocation}
-        onExplanationChange={setExplanation}
-        onDenylistToken={handleDenyToken}
-        onSubmit={handleSubmit}
-        onRandomize={!editingId ? handleRandomize : undefined}
-        isSubmitting={isSubmitting}
-        isEditing={!!editingId}
-      />
-
-      {editingId && (
-        <div className="flex justify-center mt-4">
-          <Button variant="outline" onClick={handleCancel} className="w-full max-w-xs">
-            Cancel
-          </Button>
-        </div>
-      )}
-    </main>
-  )
+    {editingId && (
+      <div className="flex justify-center mt-4">
+        <Button variant="outline" onClick={handleCancel} className="w-full max-w-xs">
+          Cancel
+        </Button>
+      </div>
+    )}
+  </main>
 }

@@ -22,11 +22,37 @@ const Slider = React.forwardRef<React.ElementRef<typeof SliderPrimitive.Root>, S
     // The Radix UI Slider component already handles step constraints
     // We just need to use the current value for color calculations
     
-    // Use fixed colors for the track and range that match the token colors in token-selection.tsx
-    // Track (right side) is always red-500
-    // Range (left side) is always blue-500
-    const trackColor = "rgb(239, 68, 68)"; // red-500 in RGB
-    const rangeColor = "rgb(59, 130, 246)"; // blue-500 in RGB
+    // Calculate colors based on the percentage using HSV
+    // At 0%: Blue side is fully saturated
+    // At 50%: Both sides are white
+    // At 100%: Red side is fully saturated
+    
+    // Define base colors that match the token colors in token-selection.tsx
+    const blueHue = 210; // Blue hue in HSL
+    const redHue = 0;    // Red hue in HSL
+    
+    // Determine which token is "winning"
+    const isRedWinning = percentage > 50;
+    const isBlueWinning = percentage < 50;
+    
+    // For the blue side (first token)
+    // Square the normalized value to make changes more evident around 50%
+    const normalizedBlue = percentage <= 50 ? percentage / 50 : 1;
+    const squaredBlue = Math.pow(normalizedBlue, 10);
+    const blueSaturation = percentage <= 50 ? 100 - (squaredBlue * 100) : 0;
+    const blueLightness = percentage <= 50 ? 50 + percentage : 100;
+    const blueColor = `hsl(${blueHue}, ${blueSaturation}%, ${blueLightness}%)`;
+    
+    // For the red side (second token)
+    const normalizedRed = percentage >= 50 ? (percentage - 50) / 50 : 0;
+    const squaredRed = Math.pow(normalizedRed, 0.1);
+    const redSaturation = percentage >= 50 ? squaredRed * 100 : 0;
+    const redLightness = percentage >= 50 ? 100 - (percentage - 50) : 100;
+    const redColor = `hsl(${redHue}, ${redSaturation}%, ${redLightness}%)`;
+    
+    // Set track and range colors based on who's winning, maintaining the current element-color assignment
+    const trackColor = isBlueWinning ? blueColor : redColor;
+    const rangeColor = isRedWinning ? redColor : blueColor;
     
     React.useEffect(() => {
       if (props.value) {
