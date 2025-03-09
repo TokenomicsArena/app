@@ -1,17 +1,24 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
-// Sample cryptocurrency data
-export const cryptocurrencies = [
-  { id: "bitcoin", name: "Bitcoin", symbol: "BTC", logo: "/placeholder.svg?height=80&width=80", price: 65432.1 },
-  { id: "ethereum", name: "Ethereum", symbol: "ETH", logo: "/placeholder.svg?height=80&width=80", price: 3456.78 },
-  { id: "cardano", name: "Cardano", symbol: "ADA", logo: "/placeholder.svg?height=80&width=80", price: 0.45 },
-  { id: "solana", name: "Solana", symbol: "SOL", logo: "/placeholder.svg?height=80&width=80", price: 143.21 },
-  { id: "polkadot", name: "Polkadot", symbol: "DOT", logo: "/placeholder.svg?height=80&width=80", price: 6.78 },
-  { id: "avalanche", name: "Avalanche", symbol: "AVAX", logo: "/placeholder.svg?height=80&width=80", price: 34.56 },
-  { id: "dogecoin", name: "Dogecoin", symbol: "DOGE", logo: "/placeholder.svg?height=80&width=80", price: 0.12 },
-  { id: "chainlink", name: "Chainlink", symbol: "LINK", logo: "/placeholder.svg?height=80&width=80", price: 15.67 },
-]
+// Define the cryptocurrency type
+export type Cryptocurrency = {
+  id: string
+  name: string
+  symbol: string
+  logo: string
+  price: number
+  marketCap?: number
+}
+
+// Import cryptocurrency data from JSON file
+import cryptoData from '../public/coinmarketcap-data.json';
+
+// Default cryptocurrency data - populated from the imported JSON
+export const defaultCryptocurrencies: Cryptocurrency[] = cryptoData as Cryptocurrency[];
+
+// This will be populated from the store
+export let cryptocurrencies: Cryptocurrency[] = [...defaultCryptocurrencies]
 
 // Type for history items
 export type HistoryItem = {
@@ -510,17 +517,28 @@ export const getSmartPair = (): [(typeof cryptocurrencies)[0], (typeof cryptocur
 const sampleHistory: HistoryItem[] = []
 
 type Store = {
+  // History management
   history: HistoryItem[]
   addToHistory: (item: HistoryItem) => void
   updateHistory: (id: string, item: HistoryItem) => void
   removeFromHistory: (id: string) => void
+  clearHistory: () => void
   exportHistory: () => { history: HistoryItem[] }
   importHistory: (data: { history: HistoryItem[] }) => void
+  
+  // Token management
+  tokens: Cryptocurrency[]
+  updateToken: (token: Cryptocurrency) => void
+  addToken: (token: Cryptocurrency) => void
+  deleteToken: (id: string) => void
+  resetTokensToDefault: () => void
+  setTokens: (tokens: Cryptocurrency[]) => void
 }
 
 export const useStore = create<Store>()(
   persist(
     (set, get) => ({
+      // History management
       history: sampleHistory,
       addToHistory: (item) =>
         set((state) => ({
@@ -533,6 +551,10 @@ export const useStore = create<Store>()(
       removeFromHistory: (id) =>
         set((state) => ({
           history: state.history.filter((h) => h.id !== id),
+        })),
+      clearHistory: () =>
+        set(() => ({
+          history: [],
         })),
       exportHistory: () => {
         // Return a copy of the history data
@@ -547,9 +569,85 @@ export const useStore = create<Store>()(
         // Replace the entire history with the imported data
         set({ history: data.history });
       },
+      
+      // Token management
+      tokens: defaultCryptocurrencies,
+      updateToken: (token) =>
+        set((state) => {
+          const updatedTokens = state.tokens.map((t) => 
+            t.id === token.id ? token : t
+          );
+          
+          // Update the exported cryptocurrencies array
+          cryptocurrencies = [...updatedTokens];
+          
+          return { tokens: updatedTokens };
+        }),
+      addToken: (token) =>
+        set((state) => {
+          // Check if token with this ID already exists
+          if (state.tokens.some((t) => t.id === token.id)) {
+            throw new Error(`Token with ID ${token.id} already exists`);
+          }
+          
+          const updatedTokens = [...state.tokens, token];
+          
+          // Update the exported cryptocurrencies array
+          cryptocurrencies = [...updatedTokens];
+          
+          return { tokens: updatedTokens };
+        }),
+      deleteToken: (id) =>
+        set((state) => {
+          const updatedTokens = state.tokens.filter((t) => t.id !== id);
+          
+          // Update the exported cryptocurrencies array
+          cryptocurrencies = [...updatedTokens];
+          
+          // Filter history to remove entries with this token
+          const updatedHistory = state.history.filter(
+            (item) => item.crypto1.id !== id && item.crypto2.id !== id
+          );
+          
+          return { 
+            tokens: updatedTokens,
+            history: updatedHistory
+          };
+        }),
+      resetTokensToDefault: () =>
+        set(() => {
+          // Update the exported cryptocurrencies array
+          cryptocurrencies = [...defaultCryptocurrencies];
+          
+          return { tokens: defaultCryptocurrencies };
+        }),
+      setTokens: (tokens) =>
+        set(() => {
+          // Update the exported cryptocurrencies array
+          cryptocurrencies = [...tokens];
+          
+          return { tokens };
+        }),
     }),
     {
       name: "tokenomics-arena-storage",
     },
   ),
 )
+
+// Initialize cryptocurrencies from the store
+// This ensures that the exported cryptocurrencies array is always in sync with the store
+const initStore = () => {
+  const state = useStore.getState();
+  
+  // If tokens are already in the store, use them
+  if (state.tokens && state.tokens.length > 0) {
+    cryptocurrencies = [...state.tokens];
+  }
+};
+
+// Call initStore when the module is loaded
+if (typeof window !== 'undefined') {
+  // Only run in browser environment
+  setTimeout(initStore, 0);
+}

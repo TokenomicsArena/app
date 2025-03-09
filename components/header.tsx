@@ -53,10 +53,17 @@ export default function Header() {
             >
               About
             </Link>
+            <Link
+              href="/settings"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                isActive("/settings") ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              Settings
+            </Link>
           </nav>
         </div>
       </div>
     </header>
   )
 }
-

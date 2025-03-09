@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
 import TokenSelection from "@/components/token-selection"
 import { getRandomPair, getSmartPair, useStore } from "@/lib/store"
-import AboutPage from "./about/page"
+// Don't import AboutPage component directly
 import Link from "next/link"
 
 export default function Home() {
@@ -174,10 +174,26 @@ export default function Home() {
     router.push("/")
   }
 
+  const handleRandomize = () => {
+    // Get a completely random pair
+    const randomPair = getRandomPair()
+    setCryptoPair(randomPair)
+    setAllocation([50]) // Reset allocation to 50/50
+    
+    toast({
+      title: "Randomized!",
+      description: `New pair: ${randomPair[0].name} vs ${randomPair[1].name}`,
+    })
+  }
+
   return (
     <main className="container max-w-4xl mx-auto py-8 px-4">
       <noscript>
-        <AboutPage />
+        <div className="py-8">
+          <h2 className="text-2xl font-bold mb-4">JavaScript Required</h2>
+          <p className="mb-4">This application requires JavaScript to function properly.</p>
+          <p>Please enable JavaScript in your browser settings and reload the page.</p>
+        </div>
       </noscript>
       <h1 className="text-3xl font-bold text-center mb-8">{editingId ? "Edit Your Selection" : "Tokenomics Arena"}</h1>
 
@@ -189,17 +205,30 @@ export default function Home() {
         onExplanationChange={setExplanation}
       />
 
-      <div className="flex gap-4">
-        {editingId && (
-          <Button variant="outline" onClick={handleCancel} className="flex-1">
-            Cancel
-          </Button>
-        )}
-
-        <Button onClick={handleSubmit} disabled={isSubmitting} className={editingId ? "flex-1" : "w-full"} size="lg">
-          {isSubmitting ? "Submitting..." : editingId ? "Update Selection" : "Submit & Get Next Pair"}
+      <div className="flex flex-col gap-4 mt-8">
+        <Button 
+          onClick={handleSubmit} 
+          disabled={isSubmitting} 
+          className={editingId ? "flex-1" : "w-full"} 
+          size="lg"
+        >
+          {isSubmitting ? "Submitting..." : editingId ? "Update Selection" : "Save & Continue"}
           {!isSubmitting && !editingId && <ArrowRight className="ml-2 h-5 w-5" />}
         </Button>
+
+        <div className="flex gap-4">
+          {editingId && (
+            <Button variant="outline" onClick={handleCancel} className="flex-1">
+              Cancel
+            </Button>
+          )}
+          
+          {!editingId && (
+            <Button variant="outline" onClick={handleRandomize} className="w-full">
+              Randomize
+            </Button>
+          )}
+        </div>
       </div>
     </main>
   )
