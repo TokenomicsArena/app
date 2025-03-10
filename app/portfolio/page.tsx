@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { RefreshCw, Settings, Share2 } from "lucide-react"
+import { ArrowLeft, RefreshCw, Settings, Share2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -304,6 +304,14 @@ export default function PortfolioPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-3xl font-bold">Portfolio</h1>
         <div className="flex gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="flex items-center gap-2 justify-center"
+          >
+            <Link href="/"><ArrowLeft className="h-4 w-4 inline lg:hidden mr-1" /> Back to Arena</Link>
+          </Button>
           <Button
             variant="outline"
             size="sm"

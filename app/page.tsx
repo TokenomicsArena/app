@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
+import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
@@ -10,9 +11,33 @@ import { Cryptocurrency, getSmartPair, useStore } from "@/lib/store"
 import AboutPage from "./about/page"
 
 export default function Home() {
-  const { history, addToHistory, updateHistory, toggleDenyToken } = useStore()
+  const { history, addToHistory, updateHistory, toggleDenyToken, deniedTokens } = useStore()
   const searchParams = useSearchParams()
   const router = useRouter()
+  
+  // Track how many times each token has been ignored (persisted in localStorage)
+  const [ignoredTokenCounts, setIgnoredTokenCounts] = useState<Record<string, number>>({})
+  
+  // Load ignored token counts from localStorage on initial render
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedCounts = localStorage.getItem('ignoredTokenCounts');
+      if (savedCounts) {
+        try {
+          setIgnoredTokenCounts(JSON.parse(savedCounts));
+        } catch (e) {
+          console.error('Error parsing ignored token counts from localStorage:', e);
+        }
+      }
+    }
+  }, []);
+  
+  // Save ignored token counts to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined' && Object.keys(ignoredTokenCounts).length > 0) {
+      localStorage.setItem('ignoredTokenCounts', JSON.stringify(ignoredTokenCounts));
+    }
+  }, [ignoredTokenCounts]);
 
   // Initialize with null to prevent hydration issues
   const [cryptoPair, setCryptoPair] = useState<[Cryptocurrency, Cryptocurrency] | null>(null)
@@ -249,6 +274,37 @@ export default function Home() {
 
   // Handle denying a token
   const handleDenyToken = async (id: string) => {
+    // Check if the token is already in the denylist
+    const isTokenDenied = deniedTokens.includes(id);
+    
+    // Only show notification and increment counter if the token is being added to the denylist
+    if (!isTokenDenied) {
+      // Get the token name from the current pair
+      const tokenName = cryptoPair?.find(token => token.id === id)?.name || "Token";
+      
+      // Increment the counter for this token
+      const currentCount = ignoredTokenCounts[id] || 0;
+      const newCount = currentCount + 1;
+      setIgnoredTokenCounts(prev => ({ ...prev, [id]: newCount }));
+      
+      // Show toast notification for the first three times
+      if (newCount <= 3) {
+        toast({
+          title: `${tokenName} ignored`,
+          description: (
+            <div>
+              This token won't appear in future comparisons. You can 
+              <Link href="/settings" className="ml-1 text-primary hover:underline">
+                go to your settings
+              </Link> to re-allow it.
+            </div>
+          ),
+          duration: 4000,
+        });
+      }
+    }
+    
+    // Toggle the token in the denylist
     toggleDenyToken(id);
 
     setIsLoading(true)

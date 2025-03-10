@@ -3,7 +3,8 @@
 import React, { useState, useRef, useEffect } from "react"
 import { useIsMobile } from "@/hooks/use-mobile"
 import Image from "next/image"
-import { Edit2, Trash2, Save, Upload } from "lucide-react"
+import Link from "next/link"
+import { ArrowLeft, Edit2, Trash2, Save, Upload } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -252,6 +253,15 @@ export default function HistoryPage() {
           <h1 className="text-3xl font-bold">History</h1>
           
           <div className="flex gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="flex items-center gap-2 flex-1 sm:flex-initial justify-center"
+            >
+              <Link href="/"><ArrowLeft className="h-4 w-4 inline lg:hidden mr-1" /> Back to Arena</Link>
+            </Button>
+            
             <Button
               variant="outline"
               size="sm"
