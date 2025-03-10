@@ -1,12 +1,27 @@
 "use client"
 import Image from "next/image"
-import { Info, X } from "lucide-react"
+import { 
+  Info, 
+  X, 
+  Globe, 
+  FileText, 
+  Twitter, 
+  MessageSquare, 
+  Github, 
+  ExternalLink,
+  Facebook,
+  MessageCircle,
+  Search,
+  BookOpen,
+  Bell
+} from "lucide-react"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 type TokenSelectionProps = {
   cryptoPair: Array<{
@@ -14,6 +29,19 @@ type TokenSelectionProps = {
     name: string
     symbol: string
     logo: string
+    urls?: {
+      website?: string[]
+      technical_doc?: string[]
+      twitter?: string[]
+      reddit?: string[]
+      message_board?: string[]
+      source_code?: string[]
+      chat?: string[]
+      facebook?: string[]
+      explorer?: string[]
+      announcement?: string[]
+    }
+    description?: string
   }> | null
   allocation: number[]
   explanation: string
@@ -25,6 +53,27 @@ type TokenSelectionProps = {
   isSubmitting?: boolean
   isEditing?: boolean
 }
+
+// Helper component for URL icons with hover effect and tooltip
+const UrlIcon = ({ url, icon: Icon, label }: { url: string, icon: any, label: string }) => (
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <a 
+          href={url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-full hover:bg-accent"
+        >
+          <Icon className="h-4 w-4" />
+        </a>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{label}</p>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+)
 
 export default function TokenSelection({
   cryptoPair,
@@ -61,6 +110,23 @@ export default function TokenSelection({
             key={crypto.id} 
             className={`border-2 ${index === 0 ? "border-blue-500" : "border-red-500"} relative`}
           >
+            {/* Info Button */}
+            {crypto.description && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="absolute top-2 left-2 p-1 rounded-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors">
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-[300px]">
+                    <p className="text-sm">{crypto.description}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+
+            {/* Deny Button */}
             {onDenylistToken && (
               <button 
                 onClick={() => onDenylistToken(crypto.id)}
@@ -84,6 +150,42 @@ export default function TokenSelection({
               <div className={`mt-2 ${isMobile ? 'text-sm' : 'text-2xl'} font-bold`}>
                 {index === 0 ? (100 - allocation[0]).toFixed(2) : allocation[0].toFixed(2)}%
               </div>
+              
+              {/* URL Icons */}
+              {crypto.urls && (
+                <div className="flex flex-wrap justify-center gap-1 mt-3">
+                  {crypto.urls.website?.[0] && (
+                    <UrlIcon url={crypto.urls.website[0]} icon={Globe} label="Website" />
+                  )}
+                  {crypto.urls.technical_doc?.[0] && (
+                    <UrlIcon url={crypto.urls.technical_doc[0]} icon={FileText} label="Documentation" />
+                  )}
+                  {crypto.urls.twitter?.[0] && (
+                    <UrlIcon url={crypto.urls.twitter[0]} icon={Twitter} label="Twitter" />
+                  )}
+                  {crypto.urls.reddit?.[0] && (
+                    <UrlIcon url={crypto.urls.reddit[0]} icon={MessageSquare} label="Reddit" />
+                  )}
+                  {crypto.urls.message_board?.[0] && (
+                    <UrlIcon url={crypto.urls.message_board[0]} icon={MessageCircle} label="Forum" />
+                  )}
+                  {crypto.urls.source_code?.[0] && (
+                    <UrlIcon url={crypto.urls.source_code[0]} icon={Github} label="Source Code" />
+                  )}
+                  {crypto.urls.chat?.[0] && (
+                    <UrlIcon url={crypto.urls.chat[0]} icon={MessageSquare} label="Chat" />
+                  )}
+                  {crypto.urls.facebook?.[0] && (
+                    <UrlIcon url={crypto.urls.facebook[0]} icon={Facebook} label="Facebook" />
+                  )}
+                  {crypto.urls.explorer?.[0] && (
+                    <UrlIcon url={crypto.urls.explorer[0]} icon={Search} label="Explorer" />
+                  )}
+                  {crypto.urls.announcement?.[0] && (
+                    <UrlIcon url={crypto.urls.announcement[0]} icon={Bell} label="Announcements" />
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -96,7 +198,7 @@ export default function TokenSelection({
             <p className="text-sm font-medium">{cryptoPair[0].name}</p>
           </div>
 
-          <p className="text-sm font-medium text-center flex-1">50%</p>
+          <p className="text-sm font-medium text-center flex-1 opacity-25">50%</p>
 
           <div className="flex items-center gap-2 flex-1 justify-end">
             <div className="w-4 h-4 bg-red-500 rounded-full"></div>
