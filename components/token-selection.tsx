@@ -15,6 +15,11 @@ import {
   BookOpen,
   Bell
 } from "lucide-react"
+import { 
+  Discord, 
+  Reddit, 
+  Telegram 
+} from "@/components/ui/icons"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
@@ -247,16 +252,32 @@ export default function TokenSelection({
                     <UrlIcon url={crypto.urls.twitter[0]} icon={Twitter} label="Twitter" />
                   )}
                   {crypto.urls.reddit?.[0] && (
-                    <UrlIcon url={crypto.urls.reddit[0]} icon={MessageSquare} label="Reddit" />
+                    <UrlIcon url={crypto.urls.reddit[0]} icon={Reddit} label="Reddit" />
                   )}
                   {crypto.urls.message_board?.[0] && (
-                    <UrlIcon url={crypto.urls.message_board[0]} icon={MessageCircle} label="Forum" />
+                    <UrlIcon 
+                      url={crypto.urls.message_board[0]} 
+                      icon={crypto.urls.message_board[0].includes('t.me') ? Telegram : MessageCircle} 
+                      label={crypto.urls.message_board[0].includes('t.me') ? 'Telegram' : 'Forum'}
+                    />
                   )}
                   {crypto.urls.source_code?.[0] && (
                     <UrlIcon url={crypto.urls.source_code[0]} icon={Github} label="Source Code" />
                   )}
                   {crypto.urls.chat?.[0] && (
-                    <UrlIcon url={crypto.urls.chat[0]} icon={MessageSquare} label="Chat" />
+                    <UrlIcon 
+                      url={crypto.urls.chat[0]} 
+                      icon={
+                        crypto.urls.chat[0].includes('discord') ? Discord :
+                        crypto.urls.chat[0].includes('t.me') ? Telegram :
+                        MessageSquare
+                      } 
+                      label={
+                        crypto.urls.chat[0].includes('discord') ? 'Discord' :
+                        crypto.urls.chat[0].includes('t.me') ? 'Telegram' :
+                        'Chat'
+                      }
+                    />
                   )}
                   {crypto.urls.facebook?.[0] && (
                     <UrlIcon url={crypto.urls.facebook[0]} icon={Facebook} label="Facebook" />
