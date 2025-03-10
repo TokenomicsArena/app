@@ -2,7 +2,7 @@
 import Image from "next/image"
 import { 
   Info, 
-  X, 
+  Trash2,
   Globe, 
   FileText, 
   Twitter, 
@@ -22,6 +22,19 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Checkbox } from "@/components/ui/checkbox"
+import { useState, useEffect } from "react"
 
 type TokenSelectionProps = {
   cryptoPair: Array<{
@@ -88,6 +101,39 @@ export default function TokenSelection({
   isEditing = false,
 }: TokenSelectionProps) {
   const isMobile = useIsMobile()
+  const [skipDenyConfirmation, setSkipDenyConfirmation] = useState(false)
+  const [tokenToDelete, setTokenToDelete] = useState<string | null>(null)
+
+  // Load skip confirmation preference from localStorage
+  useEffect(() => {
+    const savedPreference = localStorage.getItem('skipDenyConfirmation')
+    if (savedPreference) {
+      setSkipDenyConfirmation(savedPreference === 'true')
+    }
+  }, [])
+
+  // Handle deny token with confirmation
+  const handleDenyToken = (tokenId: string) => {
+    if (skipDenyConfirmation) {
+      onDenylistToken?.(tokenId)
+    } else {
+      setTokenToDelete(tokenId)
+    }
+  }
+
+  // Handle checkbox change
+  const handleSkipConfirmationChange = (checked: boolean) => {
+    setSkipDenyConfirmation(checked)
+    localStorage.setItem('skipDenyConfirmation', checked.toString())
+  }
+
+  // Handle confirmation dialog close
+  const handleDialogClose = (confirmed: boolean) => {
+    if (confirmed && tokenToDelete) {
+      onDenylistToken?.(tokenToDelete)
+    }
+    setTokenToDelete(null)
+  }
 
   // Show loading state if cryptoPair is null
   if (!cryptoPair) {
@@ -126,16 +172,53 @@ export default function TokenSelection({
               </TooltipProvider>
             )}
 
-            {/* Deny Button */}
+            {/* Deny Button with Confirmation */}
             {onDenylistToken && (
-              <button 
-                onClick={() => onDenylistToken(crypto.id)}
-                className="absolute top-2 right-2 p-1 rounded-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
-                title="Never show this token again"
-                aria-label="Deny token"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <>
+                <button 
+                  className="absolute top-2 right-2 p-1 rounded-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+                  title="Never show this token again"
+                  aria-label="Never show this token again"
+                  onClick={() => handleDenyToken(crypto.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+
+                <AlertDialog 
+                  open={tokenToDelete === crypto.id} 
+                  onOpenChange={(open) => !open && handleDialogClose(false)}
+                >
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Never show this token again?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you never want to see {crypto.name} ({crypto.symbol}) again?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="flex items-center space-x-2 py-4">
+                      <Checkbox 
+                        id={`skipConfirmation-${crypto.id}`}
+                        checked={skipDenyConfirmation}
+                        onCheckedChange={handleSkipConfirmationChange}
+                      />
+                      <label 
+                        htmlFor={`skipConfirmation-${crypto.id}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Don't show this confirmation again
+                      </label>
+                    </div>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => handleDialogClose(false)}>
+                        No
+                      </AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDialogClose(true)}>
+                        Yes
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
             )}
             <CardContent className={`${isMobile ? 'p-3' : 'p-6'} flex flex-col items-center`}>
               <Image
