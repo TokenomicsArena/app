@@ -91,14 +91,14 @@ export default function TokenSelection({
 
       <div className="mb-8">
         <div className="flex flex-row items-center justify-between mb-4 sm:mb-2 gap-2 sm:gap-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1">
             <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
             <p className="text-sm font-medium">{cryptoPair[0].name}</p>
           </div>
 
-          <p className="text-sm font-medium">50%</p>
+          <p className="text-sm font-medium text-center flex-1">50%</p>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1 justify-end">
             <div className="w-4 h-4 bg-red-500 rounded-full"></div>
             <p className="text-sm font-medium">{cryptoPair[1].name}</p>
           </div>
