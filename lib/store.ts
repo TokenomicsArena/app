@@ -213,8 +213,8 @@ const getPreferredTokens = (history: HistoryItem[], availableTokens: Cryptocurre
   const preferredIds = new Set<string>();
 
   recentHistory.forEach(item => {
-    // Consider a token "preferred" if it received more than 60% allocation
-    if (item.crypto1AllocationPercent > 60) {
+    // Consider a token "preferred" if it received more than 90% allocation
+    if (item.crypto1AllocationPercent > 90) {
       preferredIds.add(item.crypto1.id);
     } else if (item.crypto1AllocationPercent < 40) {
       preferredIds.add(item.crypto2.id);

@@ -15,29 +15,9 @@ export default function Home() {
   const searchParams = useSearchParams()
   const router = useRouter()
   
-  // Track how many times each token has been ignored (persisted in localStorage)
-  const [ignoredTokenCounts, setIgnoredTokenCounts] = useState<Record<string, number>>({})
+  // Track how many tokens have been ignored globally (not persisted)
+  const [ignoredTokenCount, setIgnoredTokenCount] = useState<number>(0)
   
-  // Load ignored token counts from localStorage on initial render
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedCounts = localStorage.getItem('ignoredTokenCounts');
-      if (savedCounts) {
-        try {
-          setIgnoredTokenCounts(JSON.parse(savedCounts));
-        } catch (e) {
-          console.error('Error parsing ignored token counts from localStorage:', e);
-        }
-      }
-    }
-  }, []);
-  
-  // Save ignored token counts to localStorage whenever they change
-  useEffect(() => {
-    if (typeof window !== 'undefined' && Object.keys(ignoredTokenCounts).length > 0) {
-      localStorage.setItem('ignoredTokenCounts', JSON.stringify(ignoredTokenCounts));
-    }
-  }, [ignoredTokenCounts]);
 
   // Initialize with null to prevent hydration issues
   const [cryptoPair, setCryptoPair] = useState<[Cryptocurrency, Cryptocurrency] | null>(null)
@@ -282,13 +262,11 @@ export default function Home() {
       // Get the token name from the current pair
       const tokenName = cryptoPair?.find(token => token.id === id)?.name || "Token";
       
-      // Increment the counter for this token
-      const currentCount = ignoredTokenCounts[id] || 0;
-      const newCount = currentCount + 1;
-      setIgnoredTokenCounts(prev => ({ ...prev, [id]: newCount }));
+      // Increment the global counter
+      setIgnoredTokenCount(prev => prev + 1);
       
-      // Show toast notification for the first three times
-      if (newCount <= 3) {
+      // Show toast notification only for the first three tokens ignored globally
+      if (ignoredTokenCount < 3) {
         toast({
           title: `${tokenName} ignored`,
           description: (

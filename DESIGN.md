@@ -2,17 +2,19 @@
 
 ## Overview
 
-Tokenomics Arena is a web application that helps users build a cryptocurrency portfolio allocation through simple pairwise comparisons. Instead of overwhelming users with complex charts and technical analysis, the platform breaks down the decision-making process into simple choices between two options at a time.
+Tokenomics Arena is a web application that helps users build a cryptocurrency portfolio allocation through simple pairwise comparisons. Instead of overwhelming users with complex charts and technical analysis, the platform breaks down the decision-making process into simple choices between two options at a time. The application uses Zustand for state management with persistent storage, ensuring user data is saved between sessions.
 
 ## Core Features
 
 ### 1. Arena (Main Interface)
 - Presents two cryptocurrencies for comparison using a smart selection algorithm
 - Large, interactive slider for allocation decisions
-- Visual feedback showing percentage splits with color coding
+- Visual feedback showing percentage splits with color coding (blue/red)
 - Optional explanation field for recording decision rationale
 - Clear submission flow with confirmation
 - Edit mode for updating previous selections
+- Ability to deny tokens (remove them from future comparisons)
+- Randomize button to get a different pair
 
 ### 2. History
 - Chronological record of all allocation decisions
@@ -22,21 +24,27 @@ Tokenomics Arena is a web application that helps users build a cryptocurrency po
 - Inline notes display
 - Edit and delete capabilities
 - Mobile-responsive design
+- Export and import functionality for backup and transfer
+- Ability to scroll to specific entries via URL anchors
 
 ### 3. Portfolio
 - Aggregated view of allocation preferences
 - Asset allocation visualization with progress bars
 - Ranked token list based on preferences
 - Customizable algorithm parameters:
-  - Learning rate
-  - Time decay factor
-  - Convergence threshold
-  - Maximum iterations
+  - Learning rate (alpha): Controls how quickly allocations adjust (0.1-1.0)
+  - Time decay factor: How much newer entries matter compared to older ones (0.5-1.0)
+  - Convergence threshold: When change is below this value, simulation stops (0.00001-0.01)
+  - Maximum iterations: Safety limit to prevent infinite loops (10-500)
+- Ability to recalculate portfolio with adjusted parameters
+- Share functionality to generate a URL with portfolio allocation
+- Token comparison history badges showing preference relationships
 
 ### 4. About
 - Mission statement
 - How-it-works guide
 - Social media connections
+- Shown to new users before they make their first selection
 
 ## Design Decisions
 
@@ -46,11 +54,13 @@ Tokenomics Arena is a web application that helps users build a cryptocurrency po
 - Logo serves as home button
 - Responsive design for all screen sizes
 - Dark/light mode support
+- Mobile-optimized interface with appropriate sizing
 
 ### Theme Support
 - System preference detection for theme
 - Manual toggle between light and dark modes
 - Consistent styling across all components
+- Shadcn UI components for consistent design language
 
 ### User Interface
 
@@ -59,6 +69,8 @@ Tokenomics Arena is a web application that helps users build a cryptocurrency po
 - Color coding (blue/red) for visual distinction
 - Clear call-to-action buttons
 - Immediate feedback on allocation changes
+- Ability to deny tokens from future comparisons
+- Randomize option for getting different pairs
 
 #### History Page
 1. Date Display
@@ -88,83 +100,33 @@ Tokenomics Arena is a web application that helps users build a cryptocurrency po
 #### Portfolio Page
 - Card-based metrics for key statistics
 - Progress bars for allocation visualization
-- Detailed breakdown table
+- Detailed breakdown of token allocations
 - Real-time calculations based on history
-- Follows an algorithm iterating towards the preferences of the user
-
-```
-// Initialize
-tokens = unique tokens from history
-allocation = {} // Empty map for token allocations
-
-// Initial allocation based on frequency in history
-for each token in tokens:
-    allocation[token] = (appearances of token in history) / (total token appearances)
-
-// Iterative refinement
-alpha = 0.9  // Learning rate (user adjustable: 0.1-1.0)
-decay_factor = 0.95  // For time decay (user adjustable: 0.5-1.0)
-convergence_threshold = 0.0001  // Stop when changes are small (user adjustable: 0.00001-0.01)
-max_iterations = 100  // Safety limit (user adjustable: 10-500)
-
-iterations = 0
-max_change = 1.0  // Initialize above threshold
-
-while (max_change > convergence_threshold && iterations < max_iterations):
-    old_allocation = copy(allocation)  // Store for comparison
-    max_change = 0
-    
-    // Process history entries in chronological order
-    // More recent entries get higher weight
-    for i from 0 to history.length-1:
-        entry = history[i]
-        time_weight = decay_factor^(history.length - 1 - i)  // Higher weight for recent entries
-        
-        token_a = entry.crypto1.id
-        token_b = entry.crypto2.id
-        pref_a = entry.crypto1AllocationPercent / 100  // As proportion
-        pref_b = 1 - pref_a
-        
-        // Current normalized allocations for this pair
-        sum_ab = allocation[token_a] + allocation[token_b]
-        if (sum_ab > 0):  // Prevent division by zero
-            curr_a_norm = allocation[token_a] / sum_ab
-            
-            // Calculate adjustment based on difference from preference
-            delta_a = (pref_a - curr_a_norm) * alpha * time_weight
-            
-            // Update allocations
-            allocation[token_a] += delta_a * sum_ab
-            allocation[token_b] -= delta_a * sum_ab
-            
-            // Ensure non-negative
-            allocation[token_a] = max(0, allocation[token_a])
-            allocation[token_b] = max(0, allocation[token_b])
-    
-    // Normalize to ensure sum = 1
-    total = sum(allocation.values())
-    for token in allocation:
-        allocation[token] /= total
-    
-    // Check convergence
-    for token in allocation:
-        change = abs(allocation[token] - old_allocation[token])
-        max_change = max(max_change, change)
-    
-    iterations += 1
-
-// Final allocations are in the allocation map
-```
+- Adjustable algorithm parameters with immediate recalculation
+- Share functionality to generate a URL with portfolio allocation
+- Token comparison badges showing preference relationships
 
 ### Data Management
 
 1. State Management
    - Zustand for global state
-   - Persistent storage for history
+   - Persistent storage for history and settings
    - Real-time portfolio calculations
+   - Hydration handling for server-side rendering
 
-2. Data Structure
+2. Data Structures
    ```typescript
+   // Cryptocurrency definition
+   type Cryptocurrency = {
+     id: string
+     name: string
+     symbol: string
+     logo: string
+     price: number
+     marketCap?: number
+   }
+
+   // History item structure
    type HistoryItem = {
      id: string
      timestamp: Date
@@ -174,47 +136,128 @@ while (max_change > convergence_threshold && iterations < max_iterations):
      explanation: string
    }
 
+   // Temporary denylisted token
+   type TempDeniedToken = {
+     id: string
+     iterationsLeft: number
+   }
+   ```
+
+3. Store Features
+   - History management (add, update, remove, clear, export, import)
+   - Token management (update, add, delete, reset to default)
+   - Denylist management (permanent and temporary)
+   - Automatic temporary denylisting of tokens that receive 0% allocation
+
 ## Smart Pair Selection
 
-The application uses an algorithm to determine which cryptocurrency pairs to present to the user. A fundamental rule is that **the same pair of cryptocurrencies is never shown twice** - once users have compared a specific pair, they will never see that exact pair again.
-
-This algorithm could use some serious tweaking.
+The application uses a sophisticated algorithm to determine which cryptocurrency pairs to present to the user. A fundamental rule is that **the same pair of cryptocurrencies is never shown twice** - once users have compared a specific pair, they will never see that exact pair again (unless all possible pairs have been exhausted).
 
 ### Pair Exhaustion Handling
 
-- When all possible unique pairs have been compared, the application notifies the user that all combinations have been completed (hardly will ever happen)
-- The user is then redirected to the History page to review their selections
-- This ensures users always make fresh comparisons and prevents redundant decision-making
+- When all possible unique pairs have been compared, the application selects the least recently compared pair
+- If no valid pairs can be found after multiple attempts, the system falls back to random selection
+- The system tracks all previously compared pairs using a normalized key (order-independent)
+- When a user denies too many tokens, the system automatically resets the denylist to ensure enough tokens are available
 
 ### Selection Strategies
 
-When selecting new pairs (that haven't been compared before), the algorithm uses these weighted strategies:
+The smart pair selection algorithm uses multiple strategies based on the user's history and preferences:
 
-1. **Explore New Tokens** (30% weight)
-   - Prioritizes tokens the user hasn't seen before
-   - Pairs new tokens with frequently compared ones
+1. **New User Experience**
+   - For users with less than 30 history entries, prioritizes a predefined list of popular tokens
+   - Ensures new users see recognizable cryptocurrencies first
 
-2. **Refine Preferred Tokens** (40% weight)
-   - Focuses on high-preference tokens
-   - Helps refine allocations for tokens the user already likes
+2. **Exploration vs. Refinement**
+   - 50% chance to use an unseen token as the first token (if available)
+   - 30% chance to use a preferred token (those that received >60% allocation)
+   - 20% chance for pure random selection
+   - For the second token, balances between unseen and seen tokens
 
-3. **Reconsider Low-Preference Tokens** (15% weight)
-   - Occasionally shows low-preference tokens
-   - Gives users a chance to reconsider previous decisions
+3. **Top Token Refinement**
+   - After 30 selections, prioritizes comparing top 10 tokens against each other
+   - Focuses on tokens with fewer comparisons to ensure balanced evaluation
+   - 70% chance to prioritize top 10 tokens even after all top 10 pairs have been compared
 
-4. **Random Selection** (15% weight)
-   - Pure randomness component
-   - Ensures diversity in comparisons
+4. **Temporary Denylist**
+   - Tokens that receive 0% allocation are temporarily removed from selection for 50 iterations
+   - Gradually reintroduces these tokens to give them another chance
 
-### Algorithm Parameters
+### Algorithm Implementation
 
-- **Minimum Comparisons**: Number of times a token should be compared before reducing its "new" status
-- **Maximum Preference Bias**: Prevents always picking the same top tokens
-- **Low Preference Penalty**: Controls how quickly low-preference tokens reduce in frequency
-- **Time Decay**: More recent comparisons have more influence
+The pair selection process follows these steps:
+
+1. Filter out denied tokens (both permanent and temporary)
+2. Identify tokens the user has seen and those they haven't
+3. Determine preferred tokens from recent history (last 10 entries)
+4. For users with 30-60 selections, calculate top 10 tokens using the portfolio algorithm
+5. Select a first token based on user experience and weighted strategies
+6. Find valid candidates for the second token (not previously paired with the first)
+7. Select a second token with balanced consideration of unseen vs. seen tokens
+8. If no valid pairs are found, fall back to the least recently compared pair
+
+The system also handles special cases:
+- When a user denies a token, it's removed from future comparisons
+- When a token receives 0% allocation, it's temporarily removed for 50 iterations
+- If too many tokens are denied, the denylist is reset to ensure enough tokens are available
 
 ### Pair Tracking
 
 - The system maintains a comprehensive record of all previously compared pairs
 - Each comparison is tracked regardless of the order of tokens (A-B is considered the same as B-A)
+- Normalized pair keys are used to ensure order-independent comparison
+- The system calculates the total number of possible pairs based on available tokens
 - Before presenting a new pair, the system verifies it hasn't been shown before
+
+## Portfolio Allocation Algorithm
+
+The portfolio allocation algorithm converts pairwise comparisons into a comprehensive portfolio allocation. It uses an iterative approach to find the optimal allocation that best represents the user's preferences.
+
+### Algorithm Steps
+
+1. **Initialization**
+   - Collect all unique tokens from history
+   - Initialize allocations based on frequency of appearance in history
+
+2. **Iterative Refinement**
+   - Process history entries in chronological order
+   - Apply time decay to give more weight to recent decisions
+   - For each pair comparison, adjust allocations based on the user's preference
+   - Normalize allocations to ensure they sum to 100%
+   - Check for convergence (when changes become smaller than threshold)
+
+3. **Parameters**
+   - Learning rate (alpha): Controls how quickly allocations adjust
+   - Time decay factor: Determines how much newer entries matter compared to older ones
+   - Convergence threshold: When change is below this value, simulation stops
+   - Maximum iterations: Safety limit to prevent infinite loops
+
+### Visualization and Interaction
+
+- Portfolio allocations are displayed as progress bars
+- Tokens are ranked by allocation percentage
+- Users can adjust algorithm parameters and recalculate in real-time
+- Token comparison badges show preference relationships between tokens
+- Share functionality generates a URL with the portfolio allocation for sharing
+
+## Token Management
+
+The application provides comprehensive token management capabilities:
+
+1. **Default Tokens**
+   - Loaded from a JSON file with cryptocurrency data
+   - Includes name, symbol, logo, price, and market cap information
+
+2. **Custom Tokens**
+   - Users can add custom tokens with their own metadata
+   - Custom tokens are stored in the persistent state
+
+3. **Denylist Management**
+   - Permanent denylist: Tokens manually removed by the user
+   - Temporary denylist: Tokens that received 0% allocation (removed for 50 iterations)
+   - Automatic reset if too many tokens are denied
+
+4. **Token Preferences**
+   - System tracks which tokens are preferred based on allocation percentages
+   - Tokens receiving >90% allocation are considered "preferred"
+   - Preference data influences future pair selection
