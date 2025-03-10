@@ -1,12 +1,45 @@
 "use client"
 import Image from "next/image"
-import { Info, X } from "lucide-react"
+import { 
+  Info, 
+  Trash2,
+  Globe, 
+  FileText, 
+  Twitter, 
+  MessageSquare, 
+  Github, 
+  ExternalLink,
+  Facebook,
+  MessageCircle,
+  Search,
+  BookOpen,
+  Bell
+} from "lucide-react"
+import { 
+  Discord, 
+  Reddit, 
+  Telegram 
+} from "@/components/ui/icons"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Checkbox } from "@/components/ui/checkbox"
+import { useState, useEffect } from "react"
 
 type TokenSelectionProps = {
   cryptoPair: Array<{
@@ -14,6 +47,19 @@ type TokenSelectionProps = {
     name: string
     symbol: string
     logo: string
+    urls?: {
+      website?: string[]
+      technical_doc?: string[]
+      twitter?: string[]
+      reddit?: string[]
+      message_board?: string[]
+      source_code?: string[]
+      chat?: string[]
+      facebook?: string[]
+      explorer?: string[]
+      announcement?: string[]
+    }
+    description?: string
   }> | null
   allocation: number[]
   explanation: string
@@ -25,6 +71,27 @@ type TokenSelectionProps = {
   isSubmitting?: boolean
   isEditing?: boolean
 }
+
+// Helper component for URL icons with hover effect and tooltip
+const UrlIcon = ({ url, icon: Icon, label }: { url: string, icon: any, label: string }) => (
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <a 
+          href={url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-full hover:bg-accent"
+        >
+          <Icon className="h-4 w-4" />
+        </a>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{label}</p>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+)
 
 export default function TokenSelection({
   cryptoPair,
@@ -39,6 +106,39 @@ export default function TokenSelection({
   isEditing = false,
 }: TokenSelectionProps) {
   const isMobile = useIsMobile()
+  const [skipDenyConfirmation, setSkipDenyConfirmation] = useState(false)
+  const [tokenToDelete, setTokenToDelete] = useState<string | null>(null)
+
+  // Load skip confirmation preference from localStorage
+  useEffect(() => {
+    const savedPreference = localStorage.getItem('skipDenyConfirmation')
+    if (savedPreference) {
+      setSkipDenyConfirmation(savedPreference === 'true')
+    }
+  }, [])
+
+  // Handle deny token with confirmation
+  const handleDenyToken = (tokenId: string) => {
+    if (skipDenyConfirmation) {
+      onDenylistToken?.(tokenId)
+    } else {
+      setTokenToDelete(tokenId)
+    }
+  }
+
+  // Handle checkbox change
+  const handleSkipConfirmationChange = (checked: boolean) => {
+    setSkipDenyConfirmation(checked)
+    localStorage.setItem('skipDenyConfirmation', checked.toString())
+  }
+
+  // Handle confirmation dialog close
+  const handleDialogClose = (confirmed: boolean) => {
+    if (confirmed && tokenToDelete) {
+      onDenylistToken?.(tokenToDelete)
+    }
+    setTokenToDelete(null)
+  }
 
   // Show loading state if cryptoPair is null
   if (!cryptoPair) {
@@ -61,15 +161,69 @@ export default function TokenSelection({
             key={crypto.id} 
             className={`border-2 ${index === 0 ? "border-blue-500" : "border-red-500"} relative`}
           >
+            {/* Info Button */}
+            {crypto.description && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="absolute top-2 left-2 p-1 rounded-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors">
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-[300px]">
+                    <p className="text-sm">{crypto.description}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+
+            {/* Deny Button with Confirmation */}
             {onDenylistToken && (
-              <button 
-                onClick={() => onDenylistToken(crypto.id)}
-                className="absolute top-2 right-2 p-1 rounded-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
-                title="Never show this token again"
-                aria-label="Deny token"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <>
+                <button 
+                  className="absolute top-2 right-2 p-1 rounded-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+                  title="Never show this token again"
+                  aria-label="Never show this token again"
+                  onClick={() => handleDenyToken(crypto.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+
+                <AlertDialog 
+                  open={tokenToDelete === crypto.id} 
+                  onOpenChange={(open) => !open && handleDialogClose(false)}
+                >
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Never show this token again?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you never want to see {crypto.name} ({crypto.symbol}) again?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="flex items-center space-x-2 py-4">
+                      <Checkbox 
+                        id={`skipConfirmation-${crypto.id}`}
+                        checked={skipDenyConfirmation}
+                        onCheckedChange={handleSkipConfirmationChange}
+                      />
+                      <label 
+                        htmlFor={`skipConfirmation-${crypto.id}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Don't show this confirmation again
+                      </label>
+                    </div>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => handleDialogClose(false)}>
+                        No
+                      </AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDialogClose(true)}>
+                        Yes
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
             )}
             <CardContent className={`${isMobile ? 'p-3' : 'p-6'} flex flex-col items-center`}>
               <Image
@@ -84,6 +238,58 @@ export default function TokenSelection({
               <div className={`mt-2 ${isMobile ? 'text-sm' : 'text-2xl'} font-bold`}>
                 {index === 0 ? (100 - allocation[0]).toFixed(2) : allocation[0].toFixed(2)}%
               </div>
+              
+              {/* URL Icons */}
+              {crypto.urls && (
+                <div className="flex flex-wrap justify-center gap-1 mt-3">
+                  {crypto.urls.website?.[0] && (
+                    <UrlIcon url={crypto.urls.website[0]} icon={Globe} label="Website" />
+                  )}
+                  {crypto.urls.technical_doc?.[0] && (
+                    <UrlIcon url={crypto.urls.technical_doc[0]} icon={FileText} label="Documentation" />
+                  )}
+                  {crypto.urls.twitter?.[0] && (
+                    <UrlIcon url={crypto.urls.twitter[0]} icon={Twitter} label="Twitter" />
+                  )}
+                  {crypto.urls.reddit?.[0] && (
+                    <UrlIcon url={crypto.urls.reddit[0]} icon={Reddit} label="Reddit" />
+                  )}
+                  {crypto.urls.message_board?.[0] && (
+                    <UrlIcon 
+                      url={crypto.urls.message_board[0]} 
+                      icon={crypto.urls.message_board[0].includes('t.me') ? Telegram : MessageCircle} 
+                      label={crypto.urls.message_board[0].includes('t.me') ? 'Telegram' : 'Forum'}
+                    />
+                  )}
+                  {crypto.urls.source_code?.[0] && (
+                    <UrlIcon url={crypto.urls.source_code[0]} icon={Github} label="Source Code" />
+                  )}
+                  {crypto.urls.chat?.[0] && (
+                    <UrlIcon 
+                      url={crypto.urls.chat[0]} 
+                      icon={
+                        crypto.urls.chat[0].includes('discord') ? Discord :
+                        crypto.urls.chat[0].includes('t.me') ? Telegram :
+                        MessageSquare
+                      } 
+                      label={
+                        crypto.urls.chat[0].includes('discord') ? 'Discord' :
+                        crypto.urls.chat[0].includes('t.me') ? 'Telegram' :
+                        'Chat'
+                      }
+                    />
+                  )}
+                  {crypto.urls.facebook?.[0] && (
+                    <UrlIcon url={crypto.urls.facebook[0]} icon={Facebook} label="Facebook" />
+                  )}
+                  {crypto.urls.explorer?.[0] && (
+                    <UrlIcon url={crypto.urls.explorer[0]} icon={Search} label="Explorer" />
+                  )}
+                  {crypto.urls.announcement?.[0] && (
+                    <UrlIcon url={crypto.urls.announcement[0]} icon={Bell} label="Announcements" />
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -91,14 +297,14 @@ export default function TokenSelection({
 
       <div className="mb-8">
         <div className="flex flex-row items-center justify-between mb-4 sm:mb-2 gap-2 sm:gap-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1">
             <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
             <p className="text-sm font-medium">{cryptoPair[0].name}</p>
           </div>
 
-          <p className="text-sm font-medium">50%</p>
+          <p className="text-sm font-medium text-center flex-1 opacity-25">50%</p>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1 justify-end">
             <div className="w-4 h-4 bg-red-500 rounded-full"></div>
             <p className="text-sm font-medium">{cryptoPair[1].name}</p>
           </div>
