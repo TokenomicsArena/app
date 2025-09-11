@@ -11,6 +11,7 @@
  * - Logo as base64-encoded PNG or placeholder
  */
 
+require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
@@ -154,11 +155,10 @@ async function fetchTokenData() {
     const tokens = allTokens.slice(0, CONFIG.numTokens);
     console.log(`Successfully fetched ${tokens.length} tokens from the API.`);
     
-    // Process tokens with logos
-    console.log('Processing token logos...');
-    const tokensWithBase64Logos = [];
+    // Process tokens with logos and metadata
+    console.log('Processing token logos and metadata...');
+    const tokensWithMetadata = [];
     
-    // CoinMarketCap API may have limitations on how many IDs can be included in a single metadata request
     // Process in batches of 100 to be safe
     const metadataBatchSize = 100;
     
@@ -168,8 +168,8 @@ async function fetchTokenData() {
       
       console.log(`Fetching metadata for tokens ${i+1} to ${Math.min(i + metadataBatchSize, tokens.length)}...`);
       
-      // Fetch metadata (including logos) for this batch
-      const metadataResponse = await makeApiRequest('/v1/cryptocurrency/info', {
+      // Fetch metadata (including logos and URLs) for this batch
+      const metadataResponse = await makeApiRequest('/v2/cryptocurrency/info', {
         id: batchIds
       });
       
@@ -192,11 +192,17 @@ async function fetchTokenData() {
           } else {
             token.logo = '/placeholder.svg?height=80&width=80';
           }
+
+          // Add URLs and description from metadata
+          if (metadata) {
+            token.urls = metadata.urls || {};
+            token.description = metadata.description || '';
+          }
           
           // Remove the temporary cmcId property
           delete token.cmcId;
           
-          tokensWithBase64Logos.push(token);
+          tokensWithMetadata.push(token);
           
           // Add a delay to avoid rate limiting
           if ((i + j) < tokens.length - 1) {
@@ -204,14 +210,16 @@ async function fetchTokenData() {
           }
         } catch (error) {
           console.error(`Error processing ${token.name}: ${error.message}`);
-          // Use a placeholder if we can't get the logo
+          // Use a placeholder if we can't get the metadata
           token.logo = '/placeholder.svg?height=80&width=80';
+          token.urls = {};
+          token.description = '';
           delete token.cmcId;
-          tokensWithBase64Logos.push(token);
+          tokensWithMetadata.push(token);
         }
       }
       
-      // Add a delay between metadata batch requests to avoid rate limiting
+      // Add a delay between metadata batch requests
       if (i + metadataBatchSize < tokens.length) {
         await sleep(CONFIG.apiDelay);
       }
@@ -226,9 +234,9 @@ async function fetchTokenData() {
       fs.mkdirSync(dir, { recursive: true });
     }
     
-    fs.writeFileSync(CONFIG.outputFile, JSON.stringify(tokensWithBase64Logos, null, 2));
+    fs.writeFileSync(CONFIG.outputFile, JSON.stringify(tokensWithMetadata, null, 2));
     
-    console.log(`Successfully fetched ${tokensWithBase64Logos.length} tokens!`);
+    console.log(`Successfully fetched ${tokensWithMetadata.length} tokens!`);
     console.log(`Data saved to ${CONFIG.outputFile}`);
   } catch (error) {
     console.error(`Error fetching data from CoinMarketCap API: ${error.message}`);
